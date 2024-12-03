@@ -15,7 +15,7 @@ const app = express();
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false, // Disable SSL/TLS certificate verification
   });
-const PORT = 3000;
+// const PORT = 3000;
 const matchCount = 10;
 const delayBetweenMatchRequests = 0;
 let fetchedMatchIds = [];
@@ -229,32 +229,32 @@ app.get('/api/match-events', async (req, res) => {
     }
 });
 
-app.get('/liveclientdata/allgamedata', async (req, res) => {
-    try {
-      // Fetch data from the League client, using the HTTPS agent to ignore SSL verification
-      const response = await fetch('https://127.0.0.1:2999/liveclientdata/allgamedata', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        agent: httpsAgent, // Use the agent here
-      });
+// app.get('/liveclientdata/allgamedata', async (req, res) => {
+//     try {
+//       // Fetch data from the League client, using the HTTPS agent to ignore SSL verification
+//       const response = await fetch('https://127.0.0.1:2999/liveclientdata/allgamedata', {
+//         method: 'GET',
+//         headers: {
+//           'Content-Type': 'application/json',
+//         },
+//         agent: httpsAgent, // Use the agent here
+//       });
   
-      if (!response.ok) {
-        console.error('Error fetching data from League client:', response.status, response.statusText);
-        return res.status(response.status).json({ error: 'Failed to fetch game data from League client' });
-      }
+//       if (!response.ok) {
+//         console.error('Error fetching data from League client:', response.status, response.statusText);
+//         return res.status(response.status).json({ error: 'Failed to fetch game data from League client' });
+//       }
   
-      const data = await response.json();
-      console.log('Data updated from League Client');
+//       const data = await response.json();
+//       console.log('Data updated from League Client');
   
-      // Send the data to the client
-      res.json(data);
-    } catch (error) {
-      console.error('Error in proxy server:', error);
-      res.status(500).json({ error: 'Failed to fetch game data from proxy server' });
-    }
-  });
+//       // Send the data to the client
+//       res.json(data);
+//     } catch (error) {
+//       console.error('Error in proxy server:', error);
+//       res.status(500).json({ error: 'Failed to fetch game data from proxy server' });
+//     }
+//   });
 
 // Serve static files - this should come after API routes
 app.use(express.static(path.join(__dirname, 'services')));
@@ -267,5 +267,5 @@ app.listen(PORT, () => {
     console.log('  - GET /api/puuid');
     console.log('  - GET /api/match-stats');
     console.log('  - GET /api/match-events');
-    console.log('  - GET /api/liveclientdata/allgamedata');
+    // console.log('  - GET /api/liveclientdata/allgamedata');
 });
