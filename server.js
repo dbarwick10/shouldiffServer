@@ -15,7 +15,7 @@ const app = express();
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false, // Disable SSL/TLS certificate verification
   });
-// const PORT = 3000;
+const PORT = 3000;
 const matchCount = 10;
 const delayBetweenMatchRequests = 0;
 let fetchedMatchIds = [];
@@ -260,8 +260,8 @@ app.get('/api/match-events', async (req, res) => {
 app.use(express.static(path.join(__dirname, 'services')));
 
 // Start server
-// app.listen(PORT, () => {
-app.listen(() => {
+app.listen(PORT, () => {
+// app.listen(() => {
     // console.log(`Server running on http://localhost:${PORT}`);
     console.log('Available endpoints:');
     console.log('  - GET /api/test');
