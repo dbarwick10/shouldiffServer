@@ -260,8 +260,9 @@ app.get('/api/match-events', async (req, res) => {
 app.use(express.static(path.join(__dirname, 'services')));
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// app.listen(PORT, () => {
+app.listen(() => {
+    // console.log(`Server running on http://localhost:${PORT}`);
     console.log('Available endpoints:');
     console.log('  - GET /api/test');
     console.log('  - GET /api/puuid');
