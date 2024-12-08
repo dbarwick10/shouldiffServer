@@ -23,7 +23,9 @@ let fetchedMatchIds = [];
 // Updated CORS configuration
 const corsOptions = {
     origin: [
-        '*'
+        'http://localhost:5500',
+        'http://127.0.0.1:5500',
+        // Add any other origins you need to support
     ],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
