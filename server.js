@@ -16,8 +16,8 @@ const httpsAgent = new https.Agent({
     rejectUnauthorized: false, // Disable SSL/TLS certificate verification
   });
 const PORT = 3000;
-const matchCount = 100;
-const delayBetweenMatchRequests = 1000;
+const matchCount = 10;
+const delayBetweenMatchRequests = 0;
 let fetchedMatchIds = [];
 
 // Middleware
