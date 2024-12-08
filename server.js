@@ -17,7 +17,7 @@ const httpsAgent = new https.Agent({
   });
 const PORT = 3000;
 const matchCount = 100;
-const delayBetweenMatchRequests = 850;
+const delayBetweenMatchRequests = 1000;
 let fetchedMatchIds = [];
 
 // Middleware
