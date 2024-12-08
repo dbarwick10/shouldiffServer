@@ -20,21 +20,8 @@ const matchCount = 10;
 const delayBetweenMatchRequests = 0;
 let fetchedMatchIds = [];
 
-// Updated CORS configuration
-const corsOptions = {
-    origin: [
-        'http://localhost:5500',
-        'http://127.0.0.1:5500',
-        // Add any other origins you need to support
-    ],
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-    optionsSuccessStatus: 200
-};
-
-// Apply CORS configuration
-app.use(cors(corsOptions));
+// Middleware
+app.use(cors());
 app.use(express.json());
 
 // Debug middleware to log all requests
