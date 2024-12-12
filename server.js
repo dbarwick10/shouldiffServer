@@ -21,7 +21,19 @@ const delayBetweenMatchRequests = 1210;
 let fetchedMatchIds = [];
 
 // Middleware
-app.use(cors());
+const corsOptions = {
+  origin: [
+    'https://dbarwick10.github.io',
+    'http://localhost:3000',  
+    'http://localhost:5500'   
+  ],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+// Apply CORS with options
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Debug middleware to log all requests
