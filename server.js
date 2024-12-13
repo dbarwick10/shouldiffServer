@@ -20,25 +20,24 @@ const matchCount = 25;
 const delayBetweenMatchRequests = 0;
 let fetchedMatchIds = [];
 
-// Middleware
-const corsOptions = {
-  origin: [
-    'https://dbarwick10.github.io',
-    'http://localhost:3000',  
-    'http://localhost:5500'   
-  ],
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-};
+app.use(cors({
+    origin: '*',  // Allow all origins for testing
+    methods: ['GET', 'POST', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// Apply CORS with options
-app.use(cors(corsOptions));
 app.use(express.json());
 
-// Debug middleware to log all requests
+// Debug middleware
 app.use((req, res, next) => {
+    // Add CORS headers explicitly
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    console.log('Request headers:', req.headers);
     next();
 });
 
