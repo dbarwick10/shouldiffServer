@@ -20,34 +20,15 @@ const matchCount = 25;
 const delayBetweenMatchRequests = 0;
 let fetchedMatchIds = [];
 
-const allowedOrigins = [
-    'http://127.0.0.1:5500',
-    'http://localhost:5500',
-    'http://localhost:3000',
-    'https://dbarwick10.github.io'
-];
-
-// CORS options
-const corsOptions = {
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            console.log('Origin not allowed:', origin);
-            callback(null, true); // Allow all origins for now during development
-        }
-    },
-    methods: ['GET', 'POST', 'OPTIONS'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-// Apply CORS middleware
-app.use(cors(corsOptions));
+// Middleware
+app.use(cors());
 app.use(express.json());
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+});
 
 // Middleware to ensure CORS headers are set for all responses
 app.use((req, res, next) => {
