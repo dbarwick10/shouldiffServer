@@ -20,31 +20,23 @@ const matchCount = 25;
 const delayBetweenMatchRequests = 0;
 let fetchedMatchIds = [];
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// Debug middleware to log all requests
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    console.log('Request received:', {
+        url: req.url,
+        method: req.method,
+        origin: req.headers.origin,
+        path: req.path
+    });
     next();
 });
 
-// Middleware to ensure CORS headers are set for all responses
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    res.header('Access-Control-Allow-Origin', origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url} from origin: ${origin}`);
-    next();
+app.use(cors());
+app.use(express.json());
+
+// Add error handling
+app.use((err, req, res, next) => {
+    console.error('Server error:', err);
+    res.status(500).json({ error: err.message });
 });
 
 const RIOT_API_KEY = process.env.RIOT_API_KEY;
