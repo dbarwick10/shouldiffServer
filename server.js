@@ -20,24 +20,49 @@ const matchCount = 25;
 const delayBetweenMatchRequests = 0;
 let fetchedMatchIds = [];
 
-app.use(cors({
-    origin: '*',  // Allow all origins for testing
+const allowedOrigins = [
+    'http://127.0.0.1:5500',
+    'http://localhost:5500',
+    'http://localhost:3000',
+    'https://dbarwick10.github.io'
+];
+
+// CORS options
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('Origin not allowed:', origin);
+            callback(null, true); // Allow all origins for now during development
+        }
+    },
     methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
 
+// Apply CORS middleware
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// Debug middleware
+// Middleware to ensure CORS headers are set for all responses
 app.use((req, res, next) => {
-    // Add CORS headers explicitly
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    res.header('Access-Control-Allow-Origin', origin || '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
     
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-    console.log('Request headers:', req.headers);
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url} from origin: ${origin}`);
     next();
 });
 
