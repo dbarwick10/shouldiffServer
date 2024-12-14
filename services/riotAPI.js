@@ -2,12 +2,34 @@ class RiotAPIService {
     constructor() {
         this.apiKey = process.env.RIOT_API_KEY;
         this.matchIds = new Map();
+        this.queueMappings = {
+            'aram': 450,       // ARAM
+            'normal': 400,     // Normal 5v5 Draft Pick
+            'blind': 430,      // Normal 5v5 Blind Pick
+            'ranked': 420,     // Ranked Solo/Duo
+            'flex': 440,       // Ranked Flex
+            'urf': 1020,       // Ultra Rapid Fire
+            'ultbook': 1400,   // Ultimate Spellbook
+            'all': null        // All queues
+        };
     }
 
     async getMatchStats(puuid, region, gameMode) {
         try {
             console.log('Fetching match IDs...');
-            const matchIdsUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?start=0&count=100&api_key=${this.apiKey}`;
+            
+            // Determine queue number based on gameMode
+            const queue = gameMode && this.queueMappings[gameMode.toLowerCase()]
+                ? this.queueMappings[gameMode.toLowerCase()]
+                : null;
+
+            // Request more matches initially if filtering by game mode
+            const initialCount = queue ? Math.min(100, 5 * 30) : 5;
+
+            // Construct URL with queue parameter if specified
+            const matchIdsUrl = queue != null 
+                ? `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?queue=${encodeURIComponent(queue)}&start=0&count=${initialCount}&api_key=${this.apiKey}`
+                : `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?start=0&count=${initialCount}&api_key=${this.apiKey}`;
             
             const response = await fetch(matchIdsUrl);
             if (!response.ok) {
@@ -20,17 +42,25 @@ class RiotAPIService {
             // Store the match IDs
             this.matchIds.set(puuid, matchIds);
 
-            // Get details for first 5 matches
             const matchDetails = [];
-            for (const matchId of matchIds.slice(0, 5)) {
+            for (const matchId of matchIds) {
+                if (matchDetails.length >= 5) break; // Limit to 5 matches
+
                 const matchUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${this.apiKey}`;
                 const matchResponse = await fetch(matchUrl);
+                
                 if (matchResponse.ok) {
                     const matchData = await matchResponse.json();
-                    matchDetails.push(matchData);
+                    
+                    // Additional filtering if needed
+                    if (!queue || matchData.info.queueId === queue) {
+                        matchDetails.push(matchData);
+                        console.log(`Added match. Current count: ${matchDetails.length}/5`);
+                    }
                 } else {
                     console.error(`Failed to fetch match ${matchId}`);
                 }
+                
                 // Add a small delay between requests to avoid rate limiting
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
