@@ -9,23 +9,23 @@ const httpsAgent = new https.Agent({
 let cachedData = null;
 let pollingInterval = null;
 
-export async function getLiveData() {
-    if (!serverConfig.features.liveStats) {
-        console.log('Live stats are disabled on this server');
-        return null;
-    }
-    try {
-        // If polling isn't started, start it
-        if (!pollingInterval) {
-            startPolling();
-        }
+// export async function getLiveData() {
+//     if (!serverConfig.features.liveStats) {
+//         console.log('Live stats are disabled on this server');
+//         return null;
+//     }
+//     try {
+//         // If polling isn't started, start it
+//         if (!pollingInterval) {
+//             startPolling();
+//         }
         
-        return cachedData;
-    } catch (error) {
-        console.error('Error in getLiveData:', error);
-        return null;
-    }
-}
+//         return cachedData;
+//     } catch (error) {
+//         console.error('Error in getLiveData:', error);
+//         return null;
+//     }
+// }
 
 export async function getLiveData() {
     if (!LIVE_STATS_ENABLED) {
