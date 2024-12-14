@@ -1,5 +1,5 @@
 export function calculateAverageEventTimes(individualGameStats) {
-    console.log('Starting calculateAverageEventTimes with data:', individualGameStats);
+    // console.log('Starting calculateAverageEventTimes with data:', individualGameStats);
     
     const aggregatedTimestamps = {
         playerStats: initializeStats(),
@@ -19,7 +19,7 @@ export function calculateAverageEventTimes(individualGameStats) {
         }
     });
 
-    console.log('After processing all matches, aggregatedTimestamps:', aggregatedTimestamps);
+    // console.log('After processing all matches, aggregatedTimestamps:', aggregatedTimestamps);
 
     // Calculate averages for each category
     const averageEventTimes = {
@@ -28,7 +28,7 @@ export function calculateAverageEventTimes(individualGameStats) {
         enemyStats: calculateAverageForCategories(aggregatedTimestamps.enemyStats)
     };
 
-    console.log('Final averageEventTimes:', averageEventTimes);
+    // console.log('Final averageEventTimes:', averageEventTimes);
     return averageEventTimes;
 }
 
@@ -133,7 +133,7 @@ function aggregateTimestamps(aggregatedArray, timestamps) {
 }
 
 function aggregateDeathTimes(aggregatedArray, timestamps) {
-    console.log('Original timestamps:', timestamps);
+    // console.log('Original timestamps:', timestamps);
     
     // Convert to array using Object.values
     const actualTimestamps = Object.values(timestamps);
@@ -201,7 +201,7 @@ function aggregateGoldTimestamps(aggregatedArray, items) {
             isNaN(gold) ||
             isNaN(timestamp)
         ) {
-            console.log('Skipping invalid item at index:', index, 'gold:', gold, 'timestamp:', timestamp);
+            // console.log('Skipping invalid item at index:', index, 'gold:', gold, 'timestamp:', timestamp);
             return;
         }
 
@@ -216,36 +216,36 @@ function aggregateGoldTimestamps(aggregatedArray, items) {
             timestamp: timestamp
         });
 
-        console.log('Pushed item into aggregatedArray at index:', index, {
-            gold,
-            timestamp
-        });
+        // console.log('Pushed item into aggregatedArray at index:', index, {
+        //     gold,
+        //     timestamp
+        // });
     });
 }
 
 
 // Aggregate item gold data
 function aggregateItemGold(aggregatedArray, amounts, timestamps) {
-    console.log('Aggregating Item Gold - Debug Info:');
-    console.log('Input Arguments:');
-    console.log('aggregatedArray:', aggregatedArray);
-    console.log('amounts:', amounts);
-    console.log('timestamps:', timestamps);
+    // console.log('Aggregating Item Gold - Debug Info:');
+    // console.log('Input Arguments:');
+    // console.log('aggregatedArray:', aggregatedArray);
+    // console.log('amounts:', amounts);
+    // console.log('timestamps:', timestamps);
 
     // Detailed type and content checking
-    console.log('Type Checks:');
-    console.log('amounts is Array:', Array.isArray(amounts));
-    console.log('timestamps is Array:', Array.isArray(timestamps));
+    // console.log('Type Checks:');
+    // console.log('amounts is Array:', Array.isArray(amounts));
+    // console.log('timestamps is Array:', Array.isArray(timestamps));
     
     if (!Array.isArray(amounts) || !Array.isArray(timestamps)) {
         console.warn('Invalid input: amounts or timestamps is not an array');
-        console.log('amounts type:', typeof amounts);
-        console.log('timestamps type:', typeof timestamps);
+        // console.log('amounts type:', typeof amounts);
+        // console.log('timestamps type:', typeof timestamps);
         return aggregatedArray || [];
     }
 
-    console.log('amounts length:', amounts.length);
-    console.log('timestamps length:', timestamps.length);
+    // console.log('amounts length:', amounts.length);
+    // console.log('timestamps length:', timestamps.length);
 
     // If arrays are empty, return existing aggregated array
     if (amounts.length === 0 || timestamps.length === 0) {
@@ -261,7 +261,7 @@ function aggregateItemGold(aggregatedArray, amounts, timestamps) {
         aggregatedArray.push([]);
     }
 
-    console.log('After slot preparation, aggregatedArray:', aggregatedArray);
+    // console.log('After slot preparation, aggregatedArray:', aggregatedArray);
 
     // Process each timestamp and amount
     for (let index = 0; index < timestamps.length; index++) {
@@ -284,10 +284,10 @@ function aggregateItemGold(aggregatedArray, amounts, timestamps) {
             timestamp === null || 
             amount === null
         ) {
-            console.warn(`Skipping invalid entry at index ${index}:`, {
-                timestamp: timestamps[index],
-                amount: amounts[index]
-            });
+            // console.warn(`Skipping invalid entry at index ${index}:`, {
+            //     timestamp: timestamps[index],
+            //     amount: amounts[index]
+            // });
             continue;
         }
 
@@ -303,7 +303,7 @@ function aggregateItemGold(aggregatedArray, amounts, timestamps) {
         });
     }
 
-    console.log('Final aggregatedArray:', aggregatedArray);
+    // console.log('Final aggregatedArray:', aggregatedArray);
     return aggregatedArray;
 }
 
