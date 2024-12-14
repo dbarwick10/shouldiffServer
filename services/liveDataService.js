@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 import https from 'https';
-import { LIVE_POLLING_RATE, LIVE_STATS_ENABLED } from '../config/constants.js';
+import { LIVE_POLLING_RATE, LIVE_STATS_ENABLED } from '../config/constaints.js';
 
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false
