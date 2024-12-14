@@ -93,7 +93,7 @@ function startPolling() {
             cachedData = newData;
             console.log('Live game data updated');
         }
-    }, POLLING_RATE);
+    }, LIVE_POLLING_RATE);
 }
 
 function stopPolling() {
