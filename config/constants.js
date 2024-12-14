@@ -11,3 +11,6 @@ export const QUEUE_MAPPINGS = {
     'ultbook': 1400,   // Ultimate Spellbook
     'all': null        // All queues
 };
+
+export const LIVE_POLLING_RATE = 1000;
+export const LIVE_STATS_ENABLED = false;

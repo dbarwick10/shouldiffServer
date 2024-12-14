@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import https from 'https';
+import { LIVE_POLLING_RATE, LIVE_STATS_ENABLED } from '../config/constants.js';
 
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false
@@ -7,9 +8,31 @@ const httpsAgent = new https.Agent({
 
 let cachedData = null;
 let pollingInterval = null;
-const POLLING_RATE = 1000; // 1 second
 
 export async function getLiveData() {
+    if (!serverConfig.features.liveStats) {
+        console.log('Live stats are disabled on this server');
+        return null;
+    }
+    try {
+        // If polling isn't started, start it
+        if (!pollingInterval) {
+            startPolling();
+        }
+        
+        return cachedData;
+    } catch (error) {
+        console.error('Error in getLiveData:', error);
+        return null;
+    }
+}
+
+export async function getLiveData() {
+    if (!LIVE_STATS_ENABLED) {
+        console.log('Live stats are disabled');
+        return null;
+    }
+
     try {
         // If polling isn't started, start it
         if (!pollingInterval) {
@@ -24,6 +47,9 @@ export async function getLiveData() {
 }
 
 async function fetchLiveGameData() {
+    if (!LIVE_STATS_ENABLED) {
+        return null;
+    }
     try {
         const response = await fetch('https://127.0.0.1:2999/liveclientdata/allgamedata', {
             method: 'GET',
@@ -48,6 +74,11 @@ async function fetchLiveGameData() {
 }
 
 function startPolling() {
+    if (!LIVE_STATS_ENABLED) {
+        console.log('Live stats are disabled - polling not started');
+        return;
+    }
+
     console.log('Starting live game data polling...');
     
     // Initial fetch

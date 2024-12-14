@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import https from 'https';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
