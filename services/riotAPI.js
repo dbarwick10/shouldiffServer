@@ -94,9 +94,11 @@ class RiotAPIService {
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
 
+            this.matchIds.delete(puuid);
             return matchEvents;
 
         } catch (error) {
+            this.matchIds.delete(puuid);
             console.error('Error in getMatchEvents:', error);
             throw error;
         }
