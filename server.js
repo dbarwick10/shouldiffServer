@@ -66,7 +66,7 @@ setInterval(() => {
 }, MEMORY_LOG_INTERVAL);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
     console.log('Available endpoints:');
     console.log('  - GET /api/test');
