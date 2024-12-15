@@ -31,8 +31,8 @@ class RiotAPIService {
             }
 
             const matchIds = await response.json();
-            console.log(`Found ${matchIds.length} matches`);
-            
+            console.log(`Received ${matchIds.length} matches from API, will process up to ${MATCH_COUNT}`);
+                        
             // Store the match IDs
             this.matchIds.set(puuid, matchIds);
 
