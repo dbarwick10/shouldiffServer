@@ -4,6 +4,7 @@
   "main": "main.js",
   "type": "module",
   "scripts": {
+    "install-and-start": "npm install && node server.js",
     "start-server": "node server.js",
     "start-electron": "electron .",
     "start": "npm run start-electron",
