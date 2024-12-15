@@ -1,17 +1,11 @@
+import { MATCH_COUNT, DELAY_BETWEEN_REQUESTS, QUEUE_MAPPINGS } from '../config/constraints.js';
+
+
 class RiotAPIService {
     constructor() {
         this.apiKey = process.env.RIOT_API_KEY;
         this.matchIds = new Map();
-        this.queueMappings = {
-            'aram': 450,       // ARAM
-            'normal': 400,     // Normal 5v5 Draft Pick
-            'blind': 430,      // Normal 5v5 Blind Pick
-            'ranked': 420,     // Ranked Solo/Duo
-            'flex': 440,       // Ranked Flex
-            'urf': 1020,       // Ultra Rapid Fire
-            'ultbook': 1400,   // Ultimate Spellbook
-            'all': null        // All queues
-        };
+        this.queueMappings = QUEUE_MAPPINGS;
     }
 
     async getMatchStats(puuid, region, gameMode) {
@@ -24,7 +18,7 @@ class RiotAPIService {
                 : null;
 
             // Request more matches initially if filtering by game mode
-            const initialCount = queue ? Math.min(100, 5 * 30) : 5;
+            const initialCount = MATCH_COUNT;
 
             // Construct URL with queue parameter if specified
             const matchIdsUrl = queue != null 
@@ -44,7 +38,7 @@ class RiotAPIService {
 
             const matchDetails = [];
             for (const matchId of matchIds) {
-                if (matchDetails.length >= 5) break; // Limit to 5 matches
+                if (matchDetails.length >= MATCH_COUNT) break; // Limit to 5 matches
 
                 const matchUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${this.apiKey}`;
                 const matchResponse = await fetch(matchUrl);
@@ -62,7 +56,7 @@ class RiotAPIService {
                 }
                 
                 // Add a small delay between requests to avoid rate limiting
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
             }
 
             return matchDetails;
@@ -81,7 +75,7 @@ class RiotAPIService {
 
         try {
             const matchEvents = [];
-            for (const matchId of matchIds.slice(0, 5)) {
+            for (const matchId of matchIds.slice(0, MATCH_COUNT)) {
                 const timelineUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline?api_key=${this.apiKey}`;
                 const response = await fetch(timelineUrl);
                 if (response.ok) {
@@ -91,7 +85,7 @@ class RiotAPIService {
                     console.error(`Failed to fetch events for match ${matchId}`);
                 }
                 // Add a small delay between requests to avoid rate limiting
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
             }
 
             this.matchIds.delete(puuid);
