@@ -63,9 +63,9 @@ router.post('/stats', async (req, res) => {
         const averageEventTimes = await calculateAverageEventTimes(analysis.individualGameStats);
 
         // Clear large data structures we don't need anymore
-        clearObject(resources.matchStats);
-        clearObject(resources.matchEvents);
-        clearObject(resources.analysis);
+        clearObject(matchStats);
+        clearObject(matchEvents);
+        clearObject(analysis);
         runGC();
 
 
