@@ -62,13 +62,6 @@ router.post('/stats', async (req, res) => {
         console.log('Calculating average event times...');
         const averageEventTimes = await calculateAverageEventTimes(analysis.individualGameStats);
 
-        // Clear large data structures we don't need anymore
-        clearObject(matchStats);
-        clearObject(matchEvents);
-        clearObject(analysis);
-        runGC();
-
-
         // Step 6: Try to get live stats
         let liveStats = null;
         try {
@@ -115,6 +108,12 @@ router.post('/stats', async (req, res) => {
             analysis = null;
         }
 
+        // Clear large data structures we don't need anymore
+        clearObject(matchStats);
+        clearObject(matchEvents);
+        clearObject(analysis);
+        runGC();
+        
         // Force garbage collection if available
         if (global.gc) {
             try {
