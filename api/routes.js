@@ -200,6 +200,8 @@ router.get('/match-events', async (req, res) => {
 router.get('/live-stats', async (req, res) => {
     try {
         const liveStats = await calculateLiveStats();
+        console.log('Live stats data'); // Add this
+
         if (!liveStats) {
             return res.status(404).json({ error: 'No live game found' });
         }

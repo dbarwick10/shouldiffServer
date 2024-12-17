@@ -1,4 +1,4 @@
-import { getLiveData } from "../services/liveDataService.js";
+import { getLiveData } from '../services/liveDataService.js';
 // import { getItemDetails } from "../features/getItemsAndPrices.js";
 
 export async function calculateLiveStats() {
@@ -6,7 +6,7 @@ export async function calculateLiveStats() {
 
     try {
         const gameData = await getLiveData();
-        console.log('Received game data:', gameData);
+        console.log('Received game data');
 
         // Comprehensive null/undefined checks
         if (!gameData || !gameData.events || !gameData.events.Events || !gameData.allPlayers) {
@@ -19,6 +19,8 @@ export async function calculateLiveStats() {
         }
 
         const events = gameData.events.Events;
+        console.log('Processing events, total count:', events.length);  // Add this
+
         const activePlayerName = gameData?.activePlayer?.riotIdGameName;
         const allPlayers = gameData.allPlayers;
 
@@ -48,8 +50,15 @@ export async function calculateLiveStats() {
         teamStats.teamStats.gameStartGameTime = gameStartGameTime;
 
         // Track events
-        events.forEach(async event => {
-            
+        events.forEach(event => {
+
+            console.log('Event:', {    // Add this
+                type: event.EventName,
+                time: event.EventTime,
+                killer: event.KillerName,
+                victim: event.VictimName
+            });
+
                 if (event.EventName === "ChampionKill") {
                     const { KillerName, VictimName, Assisters = [], EventTime } = event;
                     const killerPlayer = allPlayers.find(p => p.riotIdGameName === KillerName);
@@ -72,7 +81,7 @@ export async function calculateLiveStats() {
                             teamStats.playerStats.deaths.push(EventTime);
     
                             const currentMinutes = Math.floor(EventTime / 60);
-                            const deathTimer = await calculateDeathTimer(currentMinutes, victimPlayer.level);
+                            const deathTimer = calculateDeathTimer(currentMinutes, victimPlayer.level);
                             
                             // Ensure arrays exist
                             if (!teamStats.playerStats.timeSpentDead) {
@@ -125,7 +134,7 @@ export async function calculateLiveStats() {
                             teamStats.teamStats.deaths.push(EventTime);
     
                             const currentMinutes = Math.floor(EventTime / 60);
-                            const deathTimer = await calculateDeathTimer(currentMinutes, victimPlayer.level);
+                            const deathTimer = calculateDeathTimer(currentMinutes, victimPlayer.level);
                             
                             // Ensure arrays exist
                             if (!teamStats.teamStats.timeSpentDead) {
@@ -140,7 +149,7 @@ export async function calculateLiveStats() {
                             
                             // Update cumulative time spent dead
                             playerTeamTimeSpentDead += deathTimer;
-                            teamStats.teamStats.totalTimeSpentDead.push(playerTimeSpentDead);
+                            teamStats.teamStats.totalTimeSpentDead.push(playerTeamTimeSpentDead);
                         }
                         
                         const teamAssists = Assisters.filter(assister => {
@@ -174,7 +183,7 @@ export async function calculateLiveStats() {
                             teamStats.enemyStats.deaths.push(EventTime);
     
                             const currentMinutes = Math.floor(EventTime / 60);
-                            const deathTimer = await calculateDeathTimer(currentMinutes, victimPlayer.level);
+                            const deathTimer = calculateDeathTimer(currentMinutes, victimPlayer.level);
                             
                             // Ensure arrays exist
                             if (!teamStats.enemyStats.timeSpentDead) {
@@ -189,7 +198,7 @@ export async function calculateLiveStats() {
                             
                             // Update cumulative time spent dead
                             EnemyTeamTimeSpentDead += deathTimer;
-                            teamStats.enemyStats.totalTimeSpentDead.push(playerTimeSpentDead);
+                            teamStats.enemyStats.totalTimeSpentDead.push(EnemyTeamTimeSpentDead);
                         }
                         
                         const enemyAssists = Assisters.filter(assister => {
@@ -306,11 +315,24 @@ export async function calculateLiveStats() {
                     if (killerPlayer && killerPlayer.team !== activePlayerTeam) {
                         teamStats.enemyStats.elders.push(EventTime);
                     }
-                }
+                }     
         });
 
         // Calculate team-wide item values
         calculateItemValues(teamStats);
+
+        console.log('Final stats:', {   // Add this block
+            player: {
+                kills: teamStats.playerStats.kills.length,
+                deaths: teamStats.playerStats.deaths.length,
+                assists: teamStats.playerStats.assists.length
+            },
+            team: {
+                kills: teamStats.teamStats.kills.length,
+                deaths: teamStats.teamStats.deaths.length,
+                assists: teamStats.teamStats.assists.length
+            }
+        });
 
         console.log('Calculated team stats:', teamStats);
 
