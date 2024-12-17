@@ -19,8 +19,6 @@ export async function calculateLiveStats() {
         }
 
         const events = gameData.events.Events;
-        console.log('Processing events, total count:', events.length);  // Add this
-
         const activePlayerName = gameData?.activePlayer?.riotIdGameName;
         const allPlayers = gameData.allPlayers;
 
