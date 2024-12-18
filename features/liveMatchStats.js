@@ -54,7 +54,10 @@ export async function calculateLiveStats() {
                     const { KillerName, VictimName, Assisters = [], EventTime } = event;
                     const killerPlayer = allPlayers.find(p => p.riotIdGameName === KillerName);
                     const victimPlayer = allPlayers.find(p => p.riotIdGameName === VictimName);
-                    const victimPlayerLevel = allPlayers.find(p => p.riotIdGameName === VictimName)?.level;
+                    const turretPlayerTeam = activePlayerTeam === 'ORDER' ? 'Order' : 'Chaos';
+                    const turretEnemyTeam = activePlayerTeam === 'ORDER' ? 'Chaos' : 'Order';
+                    const minionPlayerTeam = activePlayerTeam === 'ORDER' ? 'T100' : 'T200';
+                    const minionEnemyTeam = activePlayerTeam === 'ORDER' ? 'T200' : 'T100';
                     
                     if (activePlayerName) {
                         if (KillerName === activePlayerName) {
@@ -66,7 +69,7 @@ export async function calculateLiveStats() {
                             teamStats.playerStats.deaths.push(EventTime);
     
                             const currentMinutes = Math.floor(EventTime / 60);
-                            const deathTimer = calculateDeathTimer(currentMinutes, victimPlayer.level);
+                            const deathTimer = calculateDeathTimer(currentMinutes, victimPlayer?.level);
                             
                             // Ensure arrays exist
                             if (!teamStats.playerStats.timeSpentDead) {
@@ -103,16 +106,15 @@ export async function calculateLiveStats() {
                         }
                     }
                     // Player Team stats tracking
-                    if (killerPlayer && victimPlayer) {
-                        if (killerPlayer.team === activePlayerTeam) {
-                            teamStats.teamStats.kills.push(EventTime);
-                        }
+                    // if (killerPlayer?.team === activePlayerTeam || KillerName.includes(turretPlayerTeam) || KillerName.includes(minionPlayerTeam)) {
+                    if (killerPlayer?.team === activePlayerTeam) {
+                        teamStats.teamStats.kills.push(EventTime);
                         
-                        if (victimPlayer.team === activePlayerTeam) {
+                        if (victimPlayer?.team === activePlayerTeam || VictimName.includes(turretPlayerTeam) || VictimName.includes(minionPlayerTeam)) {
                             teamStats.teamStats.deaths.push(EventTime);
     
                             const currentMinutes = Math.floor(EventTime / 60);
-                            const deathTimer = calculateDeathTimer(currentMinutes, victimPlayer.level);
+                            const deathTimer = calculateDeathTimer(currentMinutes, victimPlayer?.level);
                             
                             // Ensure arrays exist
                             if (!teamStats.teamStats.timeSpentDead) {
@@ -138,7 +140,7 @@ export async function calculateLiveStats() {
                             teamStats.teamStats.assists.push(EventTime);
                         }
 
-                        if (killerPlayer.team === activePlayerTeam || victimPlayer.team === activePlayerTeam || Assisters.some(assister => allPlayers.find(p => p.riotIdGameName === assister)?.team === activePlayerTeam)) {
+                        if (killerPlayer?.team === activePlayerTeam || victimPlayer?.team === activePlayerTeam || Assisters.some(assister => allPlayers.find(p => p.riotIdGameName === assister)?.team === activePlayerTeam)) {
                             const currentKills = teamStats.teamStats.kills.length;
                             const currentAssists = teamStats.teamStats.assists.length;
                             const currentDeaths = Math.max(1, teamStats.teamStats.deaths.length); // Use 1 if no deaths to avoid division by zero
@@ -152,16 +154,15 @@ export async function calculateLiveStats() {
                         }
                     }
                     // Enemy Team stats tracking
-                    if (killerPlayer && victimPlayer) {
-                        if (killerPlayer.team !== activePlayerTeam) {
-                            teamStats.enemyStats.kills.push(EventTime);
-                        }
+                    // if (killerPlayer?.team !== activePlayerTeam || KillerName.includes(turretEnemyTeam) || KillerName.includes(minionEnemyTeam)) {
+                    if (killerPlayer?.team !== activePlayerTeam) {
+                        teamStats.enemyStats.kills.push(EventTime);
                         
-                        if (victimPlayer.team !== activePlayerTeam) {
+                        if (victimPlayer?.team !== activePlayerTeam || VictimName.includes(turretEnemyTeam) || VictimName.includes(minionEnemyTeam)) {
                             teamStats.enemyStats.deaths.push(EventTime);
     
                             const currentMinutes = Math.floor(EventTime / 60);
-                            const deathTimer = calculateDeathTimer(currentMinutes, victimPlayer.level);
+                            const deathTimer = calculateDeathTimer(currentMinutes, victimPlayer?.level);
                             
                             // Ensure arrays exist
                             if (!teamStats.enemyStats.timeSpentDead) {
@@ -188,7 +189,7 @@ export async function calculateLiveStats() {
                             teamStats.enemyStats.assists.push(EventTime);
                         }
 
-                        if (killerPlayer.team !== activePlayerTeam || victimPlayer.team !== activePlayerTeam || Assisters.some(assister => allPlayers.find(p => p.riotIdGameName === assister)?.team !== activePlayerTeam)) {
+                        if (killerPlayer?.team !== activePlayerTeam || victimPlayer?.team !== activePlayerTeam || Assisters.some(assister => allPlayers.find(p => p.riotIdGameName === assister)?.team !== activePlayerTeam)) {
                             
                             const currentKills = teamStats.enemyStats.kills.length;
                             const currentAssists = teamStats.enemyStats.assists.length;
@@ -214,12 +215,12 @@ export async function calculateLiveStats() {
                         teamStats.playerStats.turrets.push(EventTime);
                     }
 
-                    if ((killerPlayer && killerPlayer.team === activePlayerTeam) || KillerName.includes(minionPlayerTeam)) {
+                    if ((killerPlayer?.team === activePlayerTeam) || KillerName.includes(minionPlayerTeam)) {
                         teamStats.teamStats.turrets.push(EventTime);
                     }
 
                     // Enemy Team stats tracking
-                    if ((killerPlayer && killerPlayer.team !== activePlayerTeam) || KillerName.includes(minionEnemyTeam)) {
+                    if ((killerPlayer?.team !== activePlayerTeam) || KillerName.includes(minionEnemyTeam)) {
                         teamStats.enemyStats.turrets.push(EventTime);
                     }
 
@@ -233,12 +234,12 @@ export async function calculateLiveStats() {
                         teamStats.playerStats.inhibitors.push(EventTime);
                     }
                 
-                    if ((killerPlayer && killerPlayer.team === activePlayerTeam) || KillerName.includes(minionPlayerTeam)) {
+                    if ((killerPlayer?.team === activePlayerTeam) || KillerName.includes(minionPlayerTeam)) {
                         teamStats.teamStats.inhibitors.push(EventTime);
                     }
                 
                     // Enemy Team stats tracking
-                    if ((killerPlayer && killerPlayer.team !== activePlayerTeam) || KillerName.includes(minionEnemyTeam)) {
+                    if ((killerPlayer?.team !== activePlayerTeam) || KillerName.includes(minionEnemyTeam)) {
                         teamStats.enemyStats.inhibitors.push(EventTime);
                     }
 
@@ -251,12 +252,12 @@ export async function calculateLiveStats() {
                         teamStats.playerStats.dragons.push(EventTime);
                     }
 
-                    if (killerPlayer && killerPlayer.team === activePlayerTeam) {
+                    if (killerPlayer?.team === activePlayerTeam) {
                         teamStats.teamStats.dragons.push(EventTime);
                     }
 
                     // Enemy Team stats tracking
-                    if (killerPlayer && killerPlayer.team !== activePlayerTeam) {
+                    if (killerPlayer?.team !== activePlayerTeam) {
                         teamStats.enemyStats.dragons.push(EventTime);
                     }
                 } else if (event.EventName === "BaronKill") {
@@ -268,12 +269,12 @@ export async function calculateLiveStats() {
                         teamStats.playerStats.barons.push(EventTime);
                     }
 
-                    if (killerPlayer && killerPlayer.team === activePlayerTeam) {
+                    if (killerPlayer?.team === activePlayerTeam) {
                         teamStats.teamStats.barons.push(EventTime);
                     }
 
                     // Enemy Team stats tracking
-                    if (killerPlayer && killerPlayer.team !== activePlayerTeam) {
+                    if (killerPlayer?.team !== activePlayerTeam) {
                         teamStats.enemyStats.barons.push(EventTime);
                     }
                 } else if (event.DragonType === "Elder") {
@@ -285,12 +286,12 @@ export async function calculateLiveStats() {
                         teamStats.playerStats.elders.push(EventTime);
                     }
 
-                    if (killerPlayer && killerPlayer.team === activePlayerTeam) {
+                    if (killerPlayer?.team === activePlayerTeam) {
                         teamStats.teamStats.elders.push(EventTime);
                     }
 
                     // Enemy Team stats tracking
-                    if (killerPlayer && killerPlayer.team !== activePlayerTeam) {
+                    if (killerPlayer?.team !== activePlayerTeam) {
                         teamStats.enemyStats.elders.push(EventTime);
                     }
                 }     
