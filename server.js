@@ -21,7 +21,8 @@ app.use(cors({
         'http://localhost:3000',         
         'https://shouldiff.netlify.app', 
         'https://dbarwick10.github.io',  // Changed to base domain
-        'https://dbarwick10.github.io/shouldiff/'
+        'https://dbarwick10.github.io/shouldiff/',
+        'https://shouldiffserver-new.onrender.com'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
