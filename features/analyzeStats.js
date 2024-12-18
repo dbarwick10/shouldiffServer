@@ -332,7 +332,7 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
     const updateTimeSpentDead = await updateTimeSpentDeadFunction(event, timestamp, playerParticipantId, teamParticipantIds, stats, gameStats, matchStats, gameResultMatches);
 }
 
-async function updateTimeSpentDeadFunction(event, timestamp, playerParticipantId, teamParticipantIds, stats, gameStats, matchStats, gameResultMatches) {
+async function updateTimeSpentDeadFunction(event, timestamp, playerParticipantId, teamParticipantIds, stats, gameStats, matchStats, gameResultMatches, matchId) {
     async function updateTimeSpentDead(statsObj, victimId, timestamp, matchStats) {
         // Initialize if needed
         if (!statsObj.basicStats) {
