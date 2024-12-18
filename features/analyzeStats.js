@@ -329,10 +329,10 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
     }
 
     // Process time spent dead
-    const updateTimeSpentDead = await updateTimeSpentDeadFunction(event, timestamp, playerParticipantId, teamParticipantIds, stats, gameStats, matchStats, gameResultMatches);
+    const updateTimeSpentDead = await updateTimeSpentDeadFunction(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches);
 }
 
-async function updateTimeSpentDeadFunction(event, timestamp, playerParticipantId, teamParticipantIds, stats, gameStats, matchStats, gameResultMatches, matchId) {
+async function updateTimeSpentDeadFunction(event, timestamp, playerParticipantId, teamParticipantIds, stats, gameStats, matchStats, gameResultMatches) {
     async function updateTimeSpentDead(statsObj, victimId, timestamp, matchStats) {
         // Initialize if needed
         if (!statsObj.basicStats) {
