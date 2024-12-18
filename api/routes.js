@@ -31,6 +31,12 @@ function runGC() {
 }
 
 router.post('/stats', async (req, res) => {
+    console.log('POST /stats received:', {
+        headers: req.headers,
+        body: req.body,
+        origin: req.get('origin')
+    });
+
     let matchStats = null;
     let matchEvents = null;
     let analysis = null;
@@ -69,6 +75,16 @@ router.post('/stats', async (req, res) => {
             liveStats = await calculateLiveStats();
         } catch (error) {
             console.log('Live stats not available:', error.message);
+            console.error('Detailed error in /stats:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
+            res.status(500).json({ 
+                error: 'Failed to process stats', 
+                details: error.message,
+                stack: error.stack // Remove in production
+            });
         }
 
         // Extract needed data before clearing

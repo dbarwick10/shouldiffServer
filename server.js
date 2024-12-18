@@ -17,8 +17,8 @@ app.use(cors({
     origin: [
         'http://127.0.0.1:5501',        
         'http://localhost:5501',         
-        'http://127.0.0.1:3000',        
-        'http://localhost:3000',         
+        'http://127.0.0.1:10000',        
+        'http://localhost:10000',         
         'https://shouldiff.netlify.app', 
         'https://dbarwick10.github.io',  // Changed to base domain
         'https://dbarwick10.github.io/shouldiff/',
