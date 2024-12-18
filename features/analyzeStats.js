@@ -332,6 +332,152 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
     const updateTimeSpentDead = await updateTimeSpentDeadFunction(event, timestamp, playerParticipantId, teamParticipantIds, stats, gameStats, matchStats, gameResultMatches);
 }
 
+async function updateTimeSpentDeadFunction(event, timestamp, playerParticipantId, teamParticipantIds, stats, gameStats, matchStats, gameResultMatches) {
+    async function updateTimeSpentDead(statsObj, victimId, timestamp, matchStats) {
+        // Initialize if needed
+        if (!statsObj.basicStats) {
+            statsObj.basicStats = {
+                timeSpentDead: {
+                    deathMinute: [],
+                    deathLevel: [],
+                    expectedDeathTimer: [],
+                    totalDeathTime: [],
+                    history: {
+                        deathMinute: [],
+                        deathLevel: [],
+                        expectedDeathTimer: [],
+                        totalDeathTime: []
+                    }
+                },
+                deaths: {
+                    count: 0,
+                    timestamps: [],
+                    totalDeathTime: []
+                }
+            };
+        }
+
+        // Get match info for level calculation
+        const matchInfo = matchStats.find(match => match.info);
+        if (!matchInfo) {
+            console.warn('No match info found in matchStats:', { matchStats });
+            return;
+        }
+
+        // Build level timeline if needed
+        if (!matchInfo.levelTimeline) {
+            matchInfo.levelTimeline = buildLevelTimeline(matchInfo);
+        }
+
+        // Get death information
+        const gameMode = gameResultMatches.find(m => m.metadata.matchId === matchId)?.info?.gameMode;
+        const currentMinutes = Math.floor(timestamp / 60);
+        const level = getChampionLevel(matchInfo.levelTimeline, victimId, timestamp);
+        const deathTimer = calculateDeathTimer(currentMinutes, level, gameMode);
+
+        // Calculate total death time using existing data
+        const previousTotalTimeSpentDead = 
+            statsObj.basicStats.timeSpentDead.history.totalDeathTime.length > 0
+                ? statsObj.basicStats.timeSpentDead.history.totalDeathTime[
+                    statsObj.basicStats.timeSpentDead.history.totalDeathTime.length - 1
+                  ]
+                : 0;
+        
+        const totalTimeSpentDead = previousTotalTimeSpentDead + deathTimer;
+
+        // Update all arrays through direct mutation
+        statsObj.basicStats.deaths.totalDeathTime.push(totalTimeSpentDead);
+        statsObj.basicStats.timeSpentDead.deathMinute.push(Number(timestamp));
+        statsObj.basicStats.timeSpentDead.deathLevel.push(level);
+        statsObj.basicStats.timeSpentDead.expectedDeathTimer.push(deathTimer);
+        statsObj.basicStats.timeSpentDead.totalDeathTime.push(Number(Math.round(totalTimeSpentDead)));
+
+        // Update history arrays
+        statsObj.basicStats.timeSpentDead.history.deathMinute.push(Number(timestamp));
+        statsObj.basicStats.timeSpentDead.history.deathLevel.push(level);
+        statsObj.basicStats.timeSpentDead.history.expectedDeathTimer.push(deathTimer);
+        statsObj.basicStats.timeSpentDead.history.totalDeathTime.push(Number(Math.round(totalTimeSpentDead)));
+    }
+
+    // Process player dead time
+    if (event.victimId === playerParticipantId) {
+        await updateTimeSpentDead(stats.playerStats, event.victimId, timestamp, matchStats);
+        await updateTimeSpentDead(gameStats.playerStats, event.victimId, timestamp, matchStats);
+    }
+    
+    // Process team dead time
+    if (teamParticipantIds.includes(event.victimId)) {
+        await updateTimeSpentDead(stats.teamStats, event.victimId, timestamp, matchStats);
+        await updateTimeSpentDead(gameStats.teamStats, event.victimId, timestamp, matchStats);
+    }
+    
+    // Process enemy dead time using !includes
+    if (!teamParticipantIds.includes(event.victimId)) {
+        await updateTimeSpentDead(stats.enemyStats, event.victimId, timestamp, matchStats);
+        await updateTimeSpentDead(gameStats.enemyStats, event.victimId, timestamp, matchStats);
+    }
+}
+
+function buildLevelTimeline(matchInfo) {
+    const levelsByParticipant = new Map();
+    
+    // Initialize tracking arrays for each participant
+    for (let i = 1; i <= 10; i++) {
+        levelsByParticipant.set(i, [{
+            level: 1,
+            timestamp: 0
+        }]);
+    }
+
+    if (matchInfo.info?.frames) {
+        // Go through each frame
+        for (const frame of matchInfo.info.frames) {
+            if (!frame.events) continue;
+            
+            // Get level up events from this frame
+            const levelUpEvents = frame.events.filter(e => e.type === 'LEVEL_UP')
+                .sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Process each level up
+            for (const event of levelUpEvents) {
+                const participantId = event.participantId;
+                const timestamp = event.timestamp / 1000;
+                const newLevel = event.level;
+                
+                const levelHistory = levelsByParticipant.get(participantId);
+                if (!levelHistory) continue;
+
+                const currentLevel = levelHistory[levelHistory.length - 1].level;
+
+                if (newLevel === currentLevel + 1) {
+                    levelHistory.push({
+                        level: newLevel,
+                        timestamp: timestamp
+                    });
+                }
+            }
+        }
+    }
+
+    return levelsByParticipant;
+}
+
+function getChampionLevel(levelTimeline, participantId, timestamp) {
+    const levels = levelTimeline.get(participantId);
+    if (!levels) {
+        console.warn('No level data found for participant:', participantId);
+        return 1;
+    }
+    
+    for (let i = levels.length - 1; i >= 0; i--) {
+        if (levels[i].timestamp <= timestamp) {
+            return levels[i].level;
+        }
+    }
+    
+    return 1;
+}
+
 // Update processBuildingKill
 function processBuildingKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId) {
     event.matchId = matchId;
