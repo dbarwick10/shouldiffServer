@@ -20,9 +20,36 @@ app.use(cors({
         'http://127.0.0.1:3000',        
         'http://localhost:3000',         
         'https://shouldiff.netlify.app', 
-        'https://dbarwick10.github.io/shouldiff/'         
-    ]
+        'https://dbarwick10.github.io',  // Changed to base domain
+        'https://dbarwick10.github.io/shouldiff/'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    credentials: true,
+    maxAge: 86400 // Cache preflight requests for 24 hours
 }));
+
+// Add explicit CORS headers middleware after the cors() middleware
+app.use((req, res, next) => {
+    // Get the origin from the request
+    const origin = req.headers.origin;
+    
+    // Check if the origin is in our allowed list
+    if (origin && origin.match(/(localhost|127\.0\.0\.1|shouldiff\.netlify\.app|dbarwick10\.github\.io)/)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    
+    next();
+});
 
 app.use(express.json());
 
