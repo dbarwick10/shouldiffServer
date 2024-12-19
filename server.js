@@ -19,7 +19,9 @@ app.use(cors({
         'http://localhost:5501',         
         'http://127.0.0.1:10000',        
         'http://localhost:10000',         
-        'https://shouldiff.netlify.app', 
+        'https://shouldiff.netlify.app',
+        'http://shouldiff.com',
+        'https://shouldiff.com',
         'https://dbarwick10.github.io',  // Changed to base domain
         'https://dbarwick10.github.io/shouldiff/',
         'https://shouldiffserver-new.onrender.com'
@@ -55,14 +57,6 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 app.use((req, res, next) => {
-    console.log('Memory usage before request:', getMemoryStats());
-
-    console.log('Request received:', {
-        url: req.url,
-        method: req.method,
-        origin: req.headers.origin,
-        path: req.path
-    });
 
     res.on('finish', () => {
         console.log(`Memory usage after ${req.method} ${req.url}:`, getMemoryStats());
