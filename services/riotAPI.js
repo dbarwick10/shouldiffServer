@@ -1,5 +1,5 @@
-const MATCH_COUNT = 100;
-const DELAY_BETWEEN_REQUESTS = 1210;
+const MATCH_COUNT = 10;
+const DELAY_BETWEEN_REQUESTS = 0;
 
 const QUEUE_MAPPINGS = {
     'aram': 450,       // ARAM
@@ -49,7 +49,7 @@ class RiotAPIService {
 
             const matchDetails = [];
             for (const matchId of matchIds) {
-                if (matchDetails.length >= MATCH_COUNT) break; // Limit to 5 matches
+                if (matchDetails.length >= MATCH_COUNT) break; 
 
                 const matchUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${this.apiKey}`;
                 const matchResponse = await fetch(matchUrl);
@@ -60,7 +60,7 @@ class RiotAPIService {
                     // Additional filtering if needed
                     if (!queue || matchData.info.queueId === queue) {
                         matchDetails.push(matchData);
-                        console.log(`Added match. Current count: ${matchDetails.length}/5`);
+                        console.log(`Added Match Stats. Current count: ${matchDetails.length}/${MATCH_COUNT}`);
                     }
                 } else {
                     console.error(`Failed to fetch match ${matchId}`);
@@ -92,6 +92,8 @@ class RiotAPIService {
                 if (response.ok) {
                     const eventData = await response.json();
                     matchEvents.push(eventData);
+                    console.log(`Analyzing Match Events. Current count: ${matchEvents.length}/${MATCH_COUNT}`);
+
                 } else {
                     console.error(`Failed to fetch events for match ${matchId}`);
                 }
