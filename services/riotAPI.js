@@ -111,7 +111,8 @@ class RiotAPIService {
 
     async getPuuid(summonerName, tagline, region) {
         try {
-            const riotUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(summonerName)}/${encodeURIComponent(tagline)}`;
+            const tag = tagline.replace(/[^a-zA-Z0-9 ]/g, "");
+            const riotUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(summonerName)}/${encodeURIComponent(tag)}`;
             const response = await fetch(`${riotUrl}?api_key=${this.apiKey}`);
             
             if (!response.ok) {
