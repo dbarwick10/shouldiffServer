@@ -1,5 +1,5 @@
-const MATCH_COUNT = 5;
-const DELAY_BETWEEN_REQUESTS = 0;
+const MATCH_COUNT = 100;
+const DELAY_BETWEEN_REQUESTS = 1210;
 
 const QUEUE_MAPPINGS = {
     'aram': 450,       // ARAM
