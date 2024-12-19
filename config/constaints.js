@@ -1,5 +1,5 @@
-export const MATCH_COUNT = 5;
-export const DELAY_BETWEEN_REQUESTS = 0;
+export const MATCH_COUNT = 100;
+export const DELAY_BETWEEN_REQUESTS = 1210;
 
 export const QUEUE_MAPPINGS = {
     'aram': 450,       // ARAM
