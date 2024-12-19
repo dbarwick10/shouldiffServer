@@ -55,7 +55,8 @@ app.get('/api/puuid', async (req, res) => {
     }
 
     try {
-        const riotUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(summonerName)}/${encodeURIComponent(tagline)}`;
+        const tag = tagline.replace(/[^a-zA-Z0-9 ]/g, "");
+        const riotUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(summonerName)}/${encodeURIComponent(tag)}`;
         console.log('Fetching from Riot API:', riotUrl);
 
         const puuidResponse = await fetch(
