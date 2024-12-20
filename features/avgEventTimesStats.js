@@ -99,7 +99,7 @@ function aggregatePlayerStats(aggregatedStats, stats) {
 
     aggregateTimestamps(aggregatedStats.kills, stats.basicStats?.kills?.timestamps || []);
     aggregateTimestamps(aggregatedStats.deaths, stats.basicStats?.deaths?.timestamps || []);
-    aggregateTimestamps(aggregatedStats.timeSpentDead, stats.basicStats.timeSpentDead.totalDeathTime);
+    aggregateTimestamps(aggregatedStats.timeSpentDead, stats.basicStats?.deaths?.totalDeathTime);
     aggregateTimestamps(aggregatedStats.assists, stats.basicStats?.assists?.timestamps || []);
     aggregateTimestamps(aggregatedStats.kda, stats.basicStats?.kda?.timestamps || []);
     aggregateTimestamps(aggregatedStats.turrets, stats.objectives?.turrets?.timestamps || []);
