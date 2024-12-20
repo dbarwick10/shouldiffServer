@@ -97,26 +97,26 @@ function aggregatePlayerStats(aggregatedStats, stats) {
     //     }
     // });
 
-    aggregateTimestamps(aggregatedStats.kills, stats.basicStats?.kills?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.deaths, stats.basicStats?.deaths?.relativetimestamps || []);
+    aggregateTimestamps(aggregatedStats.kills, stats.basicStats?.kills?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.deaths, stats.basicStats?.deaths?.relativeTimestamps || []);
     aggregateTimestamps(aggregatedStats.timeSpentDead, stats.basicStats.timeSpentDead.totalDeathTime);
-    aggregateTimestamps(aggregatedStats.assists, stats.basicStats?.assists?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.kda, stats.basicStats?.kda?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.turrets, stats.objectives?.turrets?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.outerTowerKills, stats.objectives?.towerKills?.outer?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.innerTowerKills, stats.objectives?.towerKills?.inner?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.baseTowerKills, stats.objectives?.towerKills?.base?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.nexusTowerKills, stats.objectives?.towerKills?.nexus?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.inhibitors, stats.objectives?.inhibitors?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.eliteMonsterKills, stats.objectives?.eliteMonsterKills?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.barons, stats.objectives?.barons?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.dragons, stats.objectives?.dragons?.relativetimestamps || []);
-    aggregateTimestamps(aggregatedStats.elders, stats.objectives?.elders?.relativetimestamps || []);
+    aggregateTimestamps(aggregatedStats.assists, stats.basicStats?.assists?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.kda, stats.basicStats?.kda?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.turrets, stats.objectives?.turrets?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.outerTowerKills, stats.objectives?.towerKills?.outer?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.innerTowerKills, stats.objectives?.towerKills?.inner?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.baseTowerKills, stats.objectives?.towerKills?.base?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.nexusTowerKills, stats.objectives?.towerKills?.nexus?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.inhibitors, stats.objectives?.inhibitors?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.eliteMonsterKills, stats.objectives?.eliteMonsterKills?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.barons, stats.objectives?.barons?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.dragons, stats.objectives?.dragons?.relativeTimestamps || []);
+    aggregateTimestamps(aggregatedStats.elders, stats.objectives?.elders?.relativeTimestamps || []);
 
     aggregateGoldTimestamps(aggregatedStats.itemGold, stats.economy?.itemPurchases?.items);
 
     if (stats.basicStats?.kda?.history?.count && stats.basicStats.kda.history.timestamps) {
-        aggregateKDATimestamps(aggregatedStats.kda, stats.basicStats.kda.history.count, stats.basicStats.kda.history.relativetimestamps);
+        aggregateKDATimestamps(aggregatedStats.kda, stats.basicStats.kda.history.count, stats.basicStats.kda.history.relativeTimestamps);
     }
 }
 
