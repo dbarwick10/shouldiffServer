@@ -7,12 +7,6 @@ import { calculateAverageEventTimes } from '../features/avgEventTimesStats.js';
 const router = express.Router();
 
 router.post('/stats', async (req, res) => {
-    console.log('POST /stats received:', {
-        headers: req.headers,
-        body: req.body,
-        origin: req.get('origin')
-    });
-
     let matchStats = null;
     let matchEvents = null;
     let analysis = null;
