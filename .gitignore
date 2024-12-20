@@ -1,0 +1,12 @@
+# dotenv
+.env
+
+# icon folder
+/Icon/
+
+# nodes
+node_modules/
+
+# dist
+dist/
+package-lock.js
