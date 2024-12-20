@@ -6,30 +6,6 @@ import { calculateAverageEventTimes } from '../features/avgEventTimesStats.js';
 
 const router = express.Router();
 
-// Helper function to clear object properties
-function clearObject(obj) {
-    if (!obj) return;
-    for (const key in obj) {
-        if (Array.isArray(obj[key])) {
-            obj[key].length = 0;
-        } else if (typeof obj[key] === 'object') {
-            clearObject(obj[key]);
-        }
-        obj[key] = null;
-    }
-}
-
-// Helper function to safely run garbage collection
-function runGC() {
-    if (global.gc) {
-        try {
-            global.gc();
-        } catch (e) {
-            console.error('GC failed:', e);
-        }
-    }
-}
-
 router.post('/stats', async (req, res) => {
     console.log('POST /stats received:', {
         headers: req.headers,
@@ -181,7 +157,15 @@ router.get('/match-stats', async (req, res) => {
         });
     } finally {
         if (matchStats) {
-            matchStats.matches = null;
+            if (matchStats.matches) {
+                matchStats.matches.forEach(match => {
+                    if (match.info) {
+                        match.info.frames = null;
+                        match.info.events = null;
+                    }
+                });
+                matchStats.matches = null;
+            }
             matchStats = null;
         }
         if (global.gc) try { global.gc(); } catch (e) {}
@@ -206,29 +190,70 @@ router.get('/match-events', async (req, res) => {
         });
     } finally {
         if (matchEvents) {
-            matchEvents.matches = null;
+            if (matchEvents.matches) {
+                matchEvents.matches.forEach(match => {
+                    if (match.info) {
+                        match.info.frames = null;
+                        match.info.events = null;
+                    }
+                });
+                matchEvents.matches = null;
+            }
             matchEvents = null;
         }
         if (global.gc) try { global.gc(); } catch (e) {}
     }
 });
 
-router.get('/live-stats', async (req, res) => {
-    try {
-        const liveStats = await calculateLiveStats();
-        console.log('Live stats data'); // Add this
+// router.get('/live-stats', async (req, res) => {
+//     try {
+//         const liveStats = await calculateLiveStats();
+//         console.log('Live stats data'); // Add this
 
-        if (!liveStats) {
-            return res.status(404).json({ error: 'No live game found' });
+//         if (!liveStats) {
+//             return res.status(404).json({ error: 'No live game found' });
+//         }
+//         res.json(liveStats);
+//     } catch (error) {
+//         console.error('Server error in /api/live-stats:', error);
+//         res.status(500).json({ 
+//             error: 'Internal server error', 
+//             details: error.message 
+//         });
+//     }
+// });
+
+// Helper function to clear object properties
+function clearObject(obj) {
+    if (!obj) return;
+    for (const key in obj) {
+        if (Array.isArray(obj[key])) {
+            // Clear each element in the array
+            obj[key].forEach((item, index) => {
+                if (typeof item === 'object') {
+                    clearObject(item);
+                }
+                obj[key][index] = null;
+            });
+            obj[key].length = 0;
+        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+            clearObject(obj[key]);
         }
-        res.json(liveStats);
-    } catch (error) {
-        console.error('Server error in /api/live-stats:', error);
-        res.status(500).json({ 
-            error: 'Internal server error', 
-            details: error.message 
-        });
+        obj[key] = null;
     }
-});
+    // Clear any properties on the prototype chain
+    Object.setPrototypeOf(obj, null);
+}
+
+// Helper function to safely run garbage collection
+function runGC() {
+    if (global.gc) {
+        try {
+            global.gc();
+        } catch (e) {
+            console.error('GC failed:', e);
+        }
+    }
+}
 
 export default router;

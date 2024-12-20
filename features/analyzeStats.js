@@ -1,6 +1,5 @@
-
 import { analyzeMatchTimelineForSummoner } from './matchTimeline.js';
-import { getItemDetails } from './getItemsAndPrices.js';
+// import { getItemDetails } from './getItemsAndPrices.js';
 import { gameResult } from './endGameResult.js';
 
 const destroyedItems = new Map();
@@ -738,7 +737,7 @@ export async function processItemPurchase(event, playerParticipantId, teamPartic
     let itemDetails = { gold: { total: 0 }, from: [] };
     try {
         if (event.itemId) {
-            itemDetails = await getItemDetails(event.itemId.toString());
+            // itemDetails = await getItemDetails(event.itemId.toString());
         }
     } catch (error) {
         console.warn(`Failed to fetch details for item ${event.itemId}, proceeding without component logic:`, error);
