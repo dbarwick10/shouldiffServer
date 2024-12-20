@@ -93,7 +93,7 @@ function getMemoryStats() {
     };
 }
 
-const MEMORY_LOG_INTERVAL = 600000; // Log every 10 minutes
+const MEMORY_LOG_INTERVAL = 60000; // Log every 1 minutes
 setInterval(() => {
     console.log('Periodic memory check:', getMemoryStats());
 }, MEMORY_LOG_INTERVAL);

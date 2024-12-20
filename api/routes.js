@@ -93,7 +93,9 @@ router.post('/stats', async (req, res) => {
             details: error.message
         });
     } finally {
-        // Clear large data structures
+        try {
+            await Promise.resolve();
+        
         if (matchStats) {
             matchStats.matches = null;
             matchStats = null;
@@ -109,9 +111,8 @@ router.post('/stats', async (req, res) => {
         }
 
         // Clear large data structures we don't need anymore
-        clearObject(matchStats);
-        clearObject(matchEvents);
-        clearObject(analysis);
+        await safeCleanup(matchStats, matchEvents, analysis);
+
         runGC();
         
         // Force garbage collection if available
@@ -121,6 +122,9 @@ router.post('/stats', async (req, res) => {
             } catch (e) {
                 console.error('Failed to force garbage collection:', e);
             }
+        }
+        } catch (cleanupError) {
+            console.error('Error during cleanup:', cleanupError);
         }
     }
 });
@@ -232,25 +236,124 @@ router.get('/match-events', async (req, res) => {
 // });
 
 // Helper function to clear object properties
-function clearObject(obj) {
-    if (!obj) return;
-    for (const key in obj) {
-        if (Array.isArray(obj[key])) {
-            // Clear each element in the array
-            obj[key].forEach((item, index) => {
-                if (typeof item === 'object') {
-                    clearObject(item);
-                }
-                obj[key][index] = null;
-            });
-            obj[key].length = 0;
-        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-            clearObject(obj[key]);
-        }
-        obj[key] = null;
+async function safeCleanup(matchStats, matchEvents, analysis) {
+    try {
+        // Wait for any pending operations
+        await Promise.resolve();
+
+        // Clean each major object separately to prevent cascading failures
+        if (matchStats) await safeCleanupMatchStats(matchStats);
+        if (matchEvents) await safeCleanupMatchEvents(matchEvents);
+        if (analysis) await safeCleanupAnalysis(analysis);
+
+        // Final GC
+        runGC();
+    } catch (e) {
+        console.error('Error in safeCleanup:', e);
     }
-    // Clear any properties on the prototype chain
-    Object.setPrototypeOf(obj, null);
+}
+
+async function safeCleanupMatchStats(matchStats) {
+    try {
+        if (matchStats?.matches) {
+            for (const match of matchStats.matches) {
+                try {
+                    if (match?.info) {
+                        if (match.info.frames) {
+                            for (const frame of match.info.frames) {
+                                try {
+                                    if (frame?.events) {
+                                        frame.events = null;
+                                    }
+                                    safeNullify(frame);
+                                } catch (e) {
+                                    console.error('Error cleaning frame:', e);
+                                }
+                            }
+                            match.info.frames = null;
+                        }
+                        safeNullify(match.info);
+                    }
+                    safeNullify(match);
+                } catch (e) {
+                    console.error('Error cleaning match:', e);
+                }
+            }
+            matchStats.matches = null;
+        }
+        safeNullify(matchStats);
+    } catch (e) {
+        console.error('Error in safeCleanupMatchStats:', e);
+    }
+}
+
+async function safeCleanupMatchEvents(matchEvents) {
+    try {
+        if (matchEvents?.matches) {
+            for (const match of matchEvents.matches) {
+                try {
+                    if (match?.info) {
+                        match.info.frames = null;
+                        match.info.events = null;
+                        safeNullify(match.info);
+                    }
+                    safeNullify(match);
+                } catch (e) {
+                    console.error('Error cleaning match event:', e);
+                }
+            }
+            matchEvents.matches = null;
+        }
+        safeNullify(matchEvents);
+    } catch (e) {
+        console.error('Error in safeCleanupMatchEvents:', e);
+    }
+}
+
+async function safeCleanupAnalysis(analysis) {
+    try {
+        if (analysis) {
+            if (analysis.aggregateStats) {
+                safeNullify(analysis.aggregateStats);
+                analysis.aggregateStats = null;
+            }
+            if (analysis.individualGameStats) {
+                for (const game of analysis.individualGameStats) {
+                    try {
+                        safeNullify(game);
+                    } catch (e) {
+                        console.error('Error cleaning game:', e);
+                    }
+                }
+                analysis.individualGameStats = null;
+            }
+            safeNullify(analysis);
+        }
+    } catch (e) {
+        console.error('Error in safeCleanupAnalysis:', e);
+    }
+}
+
+// Safer version of object nullification
+function safeNullify(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    
+    for (const key in obj) {
+        try {
+            if (Array.isArray(obj[key])) {
+                obj[key].length = 0;
+            }
+            obj[key] = null;
+        } catch (e) {
+            console.error(`Error nullifying ${key}:`, e);
+        }
+    }
+    
+    try {
+        Object.setPrototypeOf(obj, null);
+    } catch (e) {
+        console.error('Error clearing prototype:', e);
+    }
 }
 
 // Helper function to safely run garbage collection
