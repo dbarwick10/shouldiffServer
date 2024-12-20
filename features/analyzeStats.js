@@ -310,7 +310,7 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
         basicStats.kda.history.raw.push(kdaRatio);
         basicStats.kda.history.count.push(kdaRatio);
         basicStats.kda.history.timestamps.push(timestamp);
-        basicStats.kda.history.relativeTimestamps.push(relativeTimestamp);
+        // basicStats.kda.history.relativeTimestamps.push(relativeTimestamp);
     };
 
     // Update stats for a specific participant type
@@ -343,7 +343,7 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
         // Update count and timestamps
         statsObj.basicStats[eventType].count++;
         statsObj.basicStats[eventType].timestamps.push(timestamp);
-        statsObj.basicStats[eventType].relativeTimestamps.push(relativeTimestamp)
+        // statsObj.basicStats[eventType].relativeTimestamps.push(relativeTimestamp)
         
         // Update KDA for kills, assists, and deaths
         updateKDA(statsObj.basicStats, timestamp, relativeTimestamp);
