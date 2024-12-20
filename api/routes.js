@@ -74,9 +74,23 @@ router.post('/stats', async (req, res) => {
 
     } catch (error) {
         console.error('Error processing request:', error);
-        res.status(500).json({ 
-            error: 'Failed to process stats', 
-            details: error.message 
+        
+        // Parse the error message if it's from Riot API
+        let errorMessage = error.message;
+        try {
+            if (error.message.includes('Failed to fetch PUUID:')) {
+                const riotError = JSON.parse(error.message.split('Failed to fetch PUUID:')[1]);
+                errorMessage = riotError.status.message;
+            }
+        } catch (e) {
+            // If parsing fails, use the original error message
+            console.error('Error parsing Riot API error:', e);
+        }
+
+        // Send a structured error response
+        res.status(400).json({
+            error: errorMessage,
+            details: error.message
         });
     } finally {
         // Clear large data structures
