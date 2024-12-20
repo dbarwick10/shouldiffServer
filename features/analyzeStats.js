@@ -231,7 +231,7 @@ function calculateRelativeTimestamp(timestamp, gameLength) {
 }
 
 function processMatchEvents(events, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches) {
-    const gameLength = matchStats.info.gameDuration;  
+    const gameLength = gameResultMatches.info.gameDuration;  
     // Set game length for both aggregate and individual game stats
     stats.playerStats.gameLength = gameLength;
     stats.teamStats.gameLength = gameLength;
