@@ -1,6 +1,5 @@
-
 import { analyzeMatchTimelineForSummoner } from './matchTimeline.js';
-import { getItemDetails } from './getItemsAndPrices.js';
+// import { getItemDetails } from './getItemsAndPrices.js';
 import { gameResult } from './endGameResult.js';
 
 const destroyedItems = new Map();
@@ -8,77 +7,56 @@ const destroyedItems = new Map();
 function initializeStats(matchId) {
     return {
         matchId,
-        gameLength: 0, // Will be set when processing events
         basicStats: {
-            kills: { 
-                count: 0, 
-                timestamps: [],
-                relativeTimestamps: [] // As percentage of game time
-            },
+            kills: { count: 0, timestamps: [] },
             deaths: { 
                 count: 0, 
                 timestamps: [], 
-                relativeTimestamps: [],
                 timers: [],
                 totalDeathTime: [],
                 levelAtDeath: []
             },
-            assists: { 
-                count: 0, 
-                timestamps: [],
-                relativeTimestamps: []
-            },
+            assists: { count: 0, timestamps: [] },
             timeSpentDead: {
                 deathMinute: [],
-                relativeDeathMinute: [],
                 deathLevel: [],
                 expectedDeathTimer: [],
                 totalDeathTime: [], 
                 history: {
                     deathMinute: [],
-                    relativeDeathMinute: [],
                     deathLevel: [],
                     expectedDeathTimer: [],
                     totalDeathTime: []
-                }
-            },
+                },
             kda: {
                 total: 0,
-                history: { 
-                    count: [], 
-                    timestamps: [],
-                    relativeTimestamps: []
-                }
-            }
+                history: { count: 0, timestamps: [] }
+               }
+            },
         },
         objectives: {
-            turrets: { 
-                count: 0, 
-                timestamps: [],
-                relativeTimestamps: []
-            },
+            turrets: { count: 0, timestamps: [] },
             towerKills: {
-                outer: { count: 0, timestamps: [], relativeTimestamps: [] },
-                inner: { count: 0, timestamps: [], relativeTimestamps: [] },
-                base: { count: 0, timestamps: [], relativeTimestamps: [] },
-                nexus: { count: 0, timestamps: [], relativeTimestamps: [] }
+                outer: { count: 0, timestamps: [] },
+                inner: { count: 0, timestamps: [] },
+                base: { count: 0, timestamps: [] },
+                nexus: { count: 0, timestamps: [] }
             },
-            inhibitors: { count: 0, timestamps: [], relativeTimestamps: [] },
-            eliteMonsterKills: { count: 0, timestamps: [], relativeTimestamps: [] },
-            dragons: { count: 0, timestamps: [], relativeTimestamps: [] },
-            barons: { count: 0, timestamps: [], relativeTimestamps: [] },
-            elders: { count: 0, timestamps: [], relativeTimestamps: [] }
+            inhibitors: { count: 0, timestamps: [] },
+            eliteMonsterKills: { count: 0, timestamps: [] },
+            dragons: { count: 0, timestamps: [] },
+            barons: { count: 0, timestamps: [] },
+            elders: { count: 0, timestamps: [] }
         },
         economy: {
             itemPurchases: { 
                 count: 0, 
                 timestamps: [], 
-                items: [],
-                relativeTimestamps: []
+                items: [] 
             },
             itemGold: { 
                 total: 0, 
-                history: { count: [], timestamps: [], relativeTimestamps: [] }
+                history: { count: [], timestamps: [] }
             }
         },
         events: [],
@@ -226,42 +204,20 @@ function getParticipantInfo(events) {
     );
 }
 
-function calculateRelativeTimestamp(timestamp, gameLength) {
-    return (timestamp / gameLength) * 100;
-}
-
 function processMatchEvents(events, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches) {
-    const gameLength = gameResultMatches?.info?.gameDuration;  
-    // Set game length for both aggregate and individual game stats
-    stats.playerStats.gameLength = gameLength;
-    stats.teamStats.gameLength = gameLength;
-    stats.enemyStats.gameLength = gameLength;
-    gameStats.playerStats.gameLength = gameLength;
-    gameStats.teamStats.gameLength = gameLength;
-    gameStats.enemyStats.gameLength = gameLength;
-
     events.forEach(event => {
         switch (event.type) {
-            case 'CHAMPION_KILL': 
-                processChampionKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches, gameLength); 
-                break;
-            case 'BUILDING_KILL':
-                processBuildingKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, gameLength);
-                break;
-            case 'ELITE_MONSTER_KILL':
-                processMonsterKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, gameLength);
-                break;
-            case 'ITEM_PURCHASED':
-                processItemPurchase(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, gameLength);
-                break;
+            case 'CHAMPION_KILL': processChampionKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches); break;
+            case 'BUILDING_KILL': processBuildingKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId); break;
+            case 'ELITE_MONSTER_KILL': processMonsterKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId); break;
+            case 'ITEM_PURCHASED': processItemPurchase(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId); break;
         }
     });
 }
 
-async function processChampionKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches, gameLength) {
+async function processChampionKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches) {
     event.matchId = matchId;
     const timestamp = (event.timestamp / 1000);
-    const relativeTimestamp = calculateRelativeTimestamp(timestamp, gameLength);
 
     // Determine participant type
     const getParticipantType = (participantId) => {
@@ -271,7 +227,7 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
     };
 
     // Update KDA ratio
-    const updateKDA = (basicStats, timestamp, relativeTimestamp) => {
+    const updateKDA = (basicStats) => {
         // Ensure all necessary structures exist
         if (!basicStats.kda) {
             basicStats.kda = { 
@@ -279,15 +235,14 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
                 history: { 
                     count: [], 
                     timestamps: [],
-                    relativeTimestamps: [],
                     raw: [] 
                 } 
             };
         }
-    
+
         const kills = basicStats.kills?.count || 0;
         const assists = basicStats.assists?.count || 0;
-        const deaths = basicStats.deaths?.count || 1; // Avoid division by zero
+        const deaths = basicStats.deaths?.count || 1;
         const kdaRatio = (kills + assists) / deaths;
         
         basicStats.kda.total = kdaRatio;
@@ -299,18 +254,14 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
         if (!Array.isArray(basicStats.kda.history.timestamps)) {
             basicStats.kda.history.timestamps = [];
         }
-        if (!Array.isArray(basicStats.kda.history.relativeTimestamps)) {
-            basicStats.kda.history.relativeTimestamps = [];
-        }
         if (!Array.isArray(basicStats.kda.history.raw)) {
             basicStats.kda.history.raw = [];
         }
         
-        // Push both absolute and relative timestamps
+        // Push to raw, count, and timestamps
         basicStats.kda.history.raw.push(kdaRatio);
         basicStats.kda.history.count.push(kdaRatio);
         basicStats.kda.history.timestamps.push(timestamp);
-        // basicStats.kda.history.relativeTimestamps.push(relativeTimestamp);
     };
 
     // Update stats for a specific participant type
@@ -320,15 +271,14 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
         // Ensure complete stats structure exists
         if (!statsObj.basicStats) {
             statsObj.basicStats = {
-                kills: { count: 0, timestamps: [], relativeTimestamps: [] },
-                deaths: { count: 0, timestamps: [], relativeTimestamps: [] },
-                assists: { count: 0, timestamps: [], relativeTimestamps: [] },
+                kills: { count: 0, timestamps: [] },
+                deaths: { count: 0, timestamps: [] },
+                assists: { count: 0, timestamps: [] },
                 kda: { 
                     total: 0, 
                     history: { 
                         count: [], 
                         timestamps: [],
-                        relativeTimestamps: [],
                         raw: []
                     } 
                 }
@@ -343,10 +293,9 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
         // Update count and timestamps
         statsObj.basicStats[eventType].count++;
         statsObj.basicStats[eventType].timestamps.push(timestamp);
-        // statsObj.basicStats[eventType].relativeTimestamps.push(relativeTimestamp)
         
         // Update KDA for kills, assists, and deaths
-        updateKDA(statsObj.basicStats, timestamp, relativeTimestamp);
+        updateKDA(statsObj.basicStats);
         
         // Add event if not a death
         // if (eventType !== 'deaths') {
@@ -553,33 +502,28 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
     updateTimeSpentDead(gameStats[participantType], event.victimId, timestamp, matchStats);
 }
 
-function processBuildingKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, gameLength) {
+function processBuildingKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId) {
     event.matchId = matchId;
     const timestamp = (event.timestamp / 1000);
-    const relativeTimestamp = calculateRelativeTimestamp(timestamp, gameLength);
-
 
     if (event.killerId === playerParticipantId) {
         stats.playerStats.objectives.turrets.count++;
         stats.playerStats.objectives.turrets.timestamps.push(timestamp);
-        // stats.playerStats.objectives.turrets.relativeTimestamps.push(relativeTimestamp)
+        // stats.playerStats.events.push({ ...event, timestamp });
         gameStats.playerStats.objectives.turrets.count++;
         gameStats.playerStats.objectives.turrets.timestamps.push(timestamp);
-        // gameStats.playerStats.objectives.turrets.relativeTimestamps.push(relativeTimestamp)
     } else if (teamParticipantIds.includes(event.killerId)) {
         stats.teamStats.objectives.turrets.count++;
         stats.teamStats.objectives.turrets.timestamps.push(timestamp);
-        // stats.teamStats.objectives.turrets.relativeTimestamps.push(relativeTimestamp)
+        // stats.teamStats.events.push({ ...event, timestamp });
         gameStats.teamStats.objectives.turrets.count++;
         gameStats.teamStats.objectives.turrets.timestamps.push(timestamp);
-        // gameStats.teamStats.objectives.turrets.relativeTimestamps.push(relativeTimestamp)
     } else {
         stats.enemyStats.objectives.turrets.count++;
         stats.enemyStats.objectives.turrets.timestamps.push(timestamp);
-        // stats.enemyStats.objectives.turrets.relativeTimestamps.push(relativeTimestamp)
+        // stats.enemyStats.events.push({ ...event, timestamp });
         gameStats.enemyStats.objectives.turrets.count++;
         gameStats.enemyStats.objectives.turrets.timestamps.push(timestamp);
-        // gameStats.enemyStats.objectives.turrets.relativeTimestamps.push(relativeTimestamp)
     }
 
     if (event.buildingType === 'TOWER_BUILDING') {
@@ -587,201 +531,163 @@ function processBuildingKill(event, playerParticipantId, teamParticipantIds, sta
         if (event.killerId === playerParticipantId) {
             stats.playerStats.objectives.towerKills[towerType].count++;
             stats.playerStats.objectives.towerKills[towerType].timestamps.push(timestamp);
-            // stats.playerStats.objectives.towerKills[towerType].relativeTimestamps.push(relativeTimestamp);
             gameStats.playerStats.objectives.towerKills[towerType].count++;
             gameStats.playerStats.objectives.towerKills[towerType].timestamps.push(timestamp);
-            // gameStats.playerStats.objectives.towerKills[towerType].relativeTimestamps.push(relativeTimestamp);
         } else if (teamParticipantIds.includes(event.killerId)) {
             stats.teamStats.objectives.towerKills[towerType].count++;
             stats.teamStats.objectives.towerKills[towerType].timestamps.push(timestamp);
-            // stats.teamStats.objectives.towerKills[towerType].relativeTimestamps.push(relativeTimestamp);
             gameStats.teamStats.objectives.towerKills[towerType].count++;
             gameStats.teamStats.objectives.towerKills[towerType].timestamps.push(timestamp);
-            // gameStats.teamStats.objectives.towerKills[towerType].relativeTimestamps.push(relativeTimestamp);
         } else {
             stats.enemyStats.objectives.towerKills[towerType].count++;
             stats.enemyStats.objectives.towerKills[towerType].timestamps.push(timestamp);
-            // stats.enemyStats.objectives.towerKills[towerType].relativeTimestamps.push(relativeTimestamp);
             gameStats.enemyStats.objectives.towerKills[towerType].count++;
             gameStats.enemyStats.objectives.towerKills[towerType].timestamps.push(timestamp);
-            // gameStats.enemyStats.objectives.towerKills[towerType].relativeTimestamps.push(relativeTimestamp);
-
         }
     } else if (event.buildingType === 'INHIBITOR_BUILDING') {
         if (event.killerId === playerParticipantId) {
             stats.playerStats.objectives.inhibitors.count++;
             stats.playerStats.objectives.inhibitors.timestamps.push(timestamp);
-            // stats.playerStats.objectives.inhibitors.relativeTimestamps.push(relativeTimestamp);
             gameStats.playerStats.objectives.inhibitors.count++;
             gameStats.playerStats.objectives.inhibitors.timestamps.push(timestamp);
-            // gameStats.playerStats.objectives.inhibitors.relativeTimestamps.push(relativeTimestamp);
         } else if (teamParticipantIds.includes(event.killerId)) {
             stats.teamStats.objectives.inhibitors.count++;
             stats.teamStats.objectives.inhibitors.timestamps.push(timestamp);
-            // stats.teamStats.objectives.inhibitors.relativeTimestamps.push(relativeTimestamp);
             gameStats.teamStats.objectives.inhibitors.count++;
             gameStats.teamStats.objectives.inhibitors.timestamps.push(timestamp);
-            // gameStats.teamStats.objectives.inhibitors.relativeTimestamps.push(relativeTimestamp);
         } else {
             stats.enemyStats.objectives.inhibitors.count++;
             stats.enemyStats.objectives.inhibitors.timestamps.push(timestamp);
-            // stats.enemyStats.objectives.inhibitors.relativeTimestamps.push(relativeTimestamp);
             gameStats.enemyStats.objectives.inhibitors.count++;
             gameStats.enemyStats.objectives.inhibitors.timestamps.push(timestamp);
-            // gameStats.enemyStats.objectives.inhibitors.relativeTimestamps.push(relativeTimestamp);
         }
     }
 
     //stats.events.push({ type: 'buildingKill', timestamp, details: event });
 }
 
-function processMonsterKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, gameLength) {
+function processMonsterKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId) {
     event.matchId = matchId;
     const timestamp = (event.timestamp / 1000);
-    const relativeTimestamp = calculateRelativeTimestamp(timestamp, gameLength);
 
     if (event.killerId === playerParticipantId) {
         stats.playerStats.objectives.eliteMonsterKills.count++;
         stats.playerStats.objectives.eliteMonsterKills.timestamps.push(timestamp);
-        // stats.playerStats.objectives.eliteMonsterKills.relativeTimestamps.push(relativeTimestamp);
+        // stats.playerStats.events.push({ ...event, timestamp });
         gameStats.playerStats.objectives.eliteMonsterKills.count++;
         gameStats.playerStats.objectives.eliteMonsterKills.timestamps.push(timestamp);
-        // gameStats.playerStats.objectives.eliteMonsterKills.relativeTimestamps.push(relativeTimestamp);
     } else if (teamParticipantIds.includes(event.killerId)) {
         stats.teamStats.objectives.eliteMonsterKills.count++;
         stats.teamStats.objectives.eliteMonsterKills.timestamps.push(timestamp);
-        // stats.teamStats.objectives.eliteMonsterKills.relativeTimestamps.push(relativeTimestamp);
+        // stats.teamStats.events.push({ ...event, timestamp });
         gameStats.teamStats.objectives.eliteMonsterKills.count++;
         gameStats.teamStats.objectives.eliteMonsterKills.timestamps.push(timestamp);
-        // gameStats.teamStats.objectives.eliteMonsterKills.relativeTimestamps.push(relativeTimestamp);
     } else {
         stats.enemyStats.objectives.eliteMonsterKills.count++;
         stats.enemyStats.objectives.eliteMonsterKills.timestamps.push(timestamp);
-        // stats.enemyStats.objectives.eliteMonsterKills.relativeTimestamps.push(relativeTimestamp);
+        // stats.enemyStats.events.push({ ...event, timestamp });
         gameStats.enemyStats.objectives.eliteMonsterKills.count++;
         gameStats.enemyStats.objectives.eliteMonsterKills.timestamps.push(timestamp);
-        // gameStats.enemyStats.objectives.eliteMonsterKills.relativeTimestamps.push(relativeTimestamp);
     }
 
     if (event.monsterType === 'DRAGON') {
         if (event.killerId === playerParticipantId) {
             stats.playerStats.objectives.dragons.count++;
             stats.playerStats.objectives.dragons.timestamps.push(timestamp);
-            // stats.playerStats.objectives.dragons.relativeTimestamps.push(relativeTimestamp);
+            // stats.playerStats.events.push({ ...event, timestamp });
             gameStats.playerStats.objectives.dragons.count++;
             gameStats.playerStats.objectives.dragons.timestamps.push(timestamp);
-            // gameStats.playerStats.objectives.dragons.relativeTimestamps.push(relativeTimestamp);
         } else if (teamParticipantIds.includes(event.killerId)) {
             stats.teamStats.objectives.dragons.count++;
             stats.teamStats.objectives.dragons.timestamps.push(timestamp);
-            // stats.teamStats.objectives.dragons.relativeTimestamps.push(relativeTimestamp);
+            // stats.teamStats.events.push({ ...event, timestamp });
             gameStats.teamStats.objectives.dragons.count++;
             gameStats.teamStats.objectives.dragons.timestamps.push(timestamp);
-            // gameStats.teamStats.objectives.dragons.relativeTimestamps.push(relativeTimestamp);
         } else {
             stats.enemyStats.objectives.dragons.count++;
             stats.enemyStats.objectives.dragons.timestamps.push(timestamp);
-            // stats.enemyStats.objectives.dragons.relativeTimestamps.push(relativeTimestamp);
+            // stats.enemyStats.events.push({ ...event, timestamp });
             gameStats.enemyStats.objectives.dragons.count++;
             gameStats.enemyStats.objectives.dragons.timestamps.push(timestamp);
-            // gameStats.enemyStats.objectives.dragons.relativeTimestamps.push(relativeTimestamp);
         }
 
     } else if (event.monsterType === 'BARON_NASHOR') {
         if (event.killerId === playerParticipantId) {
             stats.playerStats.objectives.barons.count++;
             stats.playerStats.objectives.barons.timestamps.push(timestamp);
-            // stats.playerStats.objectives.barons.relativeTimestamps.push(relativeTimestamp);
+            // stats.playerStats.events.push({ ...event, timestamp });
             gameStats.playerStats.objectives.barons.count++;
             gameStats.playerStats.objectives.barons.timestamps.push(timestamp);
-            // gameStats.playerStats.objectives.barons.relativeTimestamps.push(relativeTimestamp);
         } else if (teamParticipantIds.includes(event.killerId)) {
             stats.teamStats.objectives.barons.count++;
             stats.teamStats.objectives.barons.timestamps.push(timestamp);
-            // stats.teamStats.objectives.barons.relativeTimestamps.push(relativeTimestamp);
+            // stats.teamStats.events.push({ ...event, timestamp });
             gameStats.teamStats.objectives.barons.count++;
             gameStats.teamStats.objectives.barons.timestamps.push(timestamp);
-            // gameStats.teamStats.objectives.barons.relativeTimestamps.push(relativeTimestamp);
         } else {
             stats.enemyStats.objectives.barons.count++;
             stats.enemyStats.objectives.barons.timestamps.push(timestamp);
-            // stats.enemyStats.objectives.barons.relativeTimestamps.push(relativeTimestamp);
+            // stats.enemyStats.events.push({ ...event, timestamp });
             gameStats.enemyStats.objectives.barons.count++;
             gameStats.enemyStats.objectives.barons.timestamps.push(timestamp);
-            // gameStats.enemyStats.objectives.barons.relativeTimestamps.push(relativeTimestamp);
         }
 
     } else if (event.monsterType === 'ELDER_DRAGON') {
         if (event.killerId === playerParticipantId) {
             stats.playerStats.objectives.elders.count++;
             stats.playerStats.objectives.elders.timestamps.push(timestamp);
-            // stats.playerStats.objectives.elders.relativeTimestamps.push(relativeTimestamp);
+            // stats.playerStats.events.push({ ...event, timestamp });
             gameStats.playerStats.objectives.elders.count++;
             gameStats.playerStats.objectives.elders.timestamps.push(timestamp);
-            // gameStats.playerStats.objectives.elders.relativeTimestamps.push(relativeTimestamp);
         } else if (teamParticipantIds.includes(event.killerId)) {
             stats.teamStats.objectives.elders.count++;
             stats.teamStats.objectives.elders.timestamps.push(timestamp);
-            // stats.teamStats.objectives.elders.relativeTimestamps.push(relativeTimestamp);
+            // stats.teamStats.events.push({ ...event, timestamp });
             gameStats.teamStats.objectives.elders.count++;
             gameStats.teamStats.objectives.elders.timestamps.push(timestamp);
-            // gameStats.teamStats.objectives.elders.relativeTimestamps.push(relativeTimestamp);
         } else {
             stats.enemyStats.objectives.elders.count++;
             stats.enemyStats.objectives.elders.timestamps.push(timestamp);
-            // stats.enemyStats.objectives.elders.relativeTimestamps.push(relativeTimestamp);
+            // stats.enemyStats.events.push({ ...event, timestamp });
             gameStats.enemyStats.objectives.elders.count++;
             gameStats.enemyStats.objectives.elders.timestamps.push(timestamp);
-            // gameStats.enemyStats.objectives.elders.relativeTimestamps.push(relativeTimestamp);
         }
     }
+    //stats.events.push({ type: 'monsterKill', timestamp, details: event });
 }
+
+
 
 // Helper function to initialize economy stats
 function initializeEconomyStats(target) {
     target.economy = target.economy || {};
-    target.economy.itemPurchases = target.economy.itemPurchases || { 
-        count: 0, 
-        timestamps: [], 
-        relativeTimestamps: [], 
-        items: [] 
-    };
-    target.economy.itemGold = target.economy.itemGold || { 
-        total: 0, 
-        history: { 
-            count: [], 
-            timestamps: [], 
-            relativeTimestamps: [] 
-        } 
-    };
+    target.economy.itemPurchases = target.economy.itemPurchases || { count: 0, timestamps: [], items: [] };
+    target.economy.itemGold = target.economy.itemGold || { total: 0, history: { count: [], timestamps: [] } };
     target.events = target.events || [];
 }
 
 // Helper function to update stats
-function updateStats(target, event, itemDetails, timestamp, relativeTimestamp) {
+function updateStats(target, event, itemDetails, timestamp) {
     // Add running total to item purchases
     const itemGold = itemDetails?.gold?.base || 0;
     const lastTotal = target.economy.itemPurchases.items.length > 0 
-        ? target.economy.itemPurchases.items[target.economy.itemPurchases.items.length - 1].totalGold 
-        : 0;
+    ? target.economy.itemPurchases.items[target.economy.itemPurchases.items.length - 1].totalGold 
+    : 0;
     const totalGold = lastTotal + itemGold;
 
     target.economy.itemPurchases.count++;
     target.economy.itemPurchases.timestamps.push(timestamp);
-    // target.economy.itemPurchases.relativeTimestamps.push(relativeTimestamp);
     target.economy.itemPurchases.items.push({
         itemName: itemDetails.name || 'Unknown',
         itemId: event.itemId,
         timestamp,
-        relativeTimestamp,
         gold: itemDetails.gold.base || 0,
         totalGold: totalGold
     });
-    
     target.economy.itemGold.total += itemDetails.gold.base || 0;
     target.economy.itemGold.history.count.push(itemDetails.gold.base || 0);
     target.economy.itemGold.history.timestamps.push(timestamp);
-    // target.economy.itemGold.history.relativeTimestamps.push(relativeTimestamp);
+    // target.events.push({ ...event, timestamp, itemDetails });
 }
 
 // Track destroyed items, including multiple instances of the same item
@@ -822,22 +728,22 @@ export function processItemDestroyed(event) {
 }
 
 // Process item purchase with component tracking
-export async function processItemPurchase(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, gameLength) {
+export async function processItemPurchase(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId) {
     if (event.type !== 'ITEM_PURCHASED') return stats;
 
     event.matchId = matchId;
-    const timestamp = (event.timestamp / 1000);
-    const relativeTimestamp = calculateRelativeTimestamp(timestamp, gameLength);
 
     // Fetch item details
     let itemDetails = { gold: { total: 0 }, from: [] };
     try {
         if (event.itemId) {
-            itemDetails = await getItemDetails(event.itemId.toString());
+            // itemDetails = await getItemDetails(event.itemId.toString());
         }
     } catch (error) {
         console.warn(`Failed to fetch details for item ${event.itemId}, proceeding without component logic:`, error);
     }
+
+    const timestamp = (event.timestamp / 1000);
 
     // Check if the item is built from components
     if (itemDetails.from && itemDetails.from.length > 0) {
@@ -863,14 +769,14 @@ export async function processItemPurchase(event, playerParticipantId, teamPartic
     });
 
     if (event.participantId === playerParticipantId) {
-        updateStats(stats.playerStats, event, itemDetails, timestamp, relativeTimestamp);
-        updateStats(gameStats.playerStats, event, itemDetails, timestamp, relativeTimestamp);
+        updateStats(stats.playerStats, event, itemDetails, timestamp);
+        updateStats(gameStats.playerStats, event, itemDetails, timestamp);
     } else if (teamParticipantIds.includes(event.participantId)) {
-        updateStats(stats.teamStats, event, itemDetails, timestamp, relativeTimestamp);
-        updateStats(gameStats.teamStats, event, itemDetails, timestamp, relativeTimestamp);
+        updateStats(stats.teamStats, event, itemDetails, timestamp);
+        updateStats(gameStats.teamStats, event, itemDetails, timestamp);
     } else {
-        updateStats(stats.enemyStats, event, itemDetails, timestamp, relativeTimestamp);
-        updateStats(gameStats.enemyStats, event, itemDetails, timestamp, relativeTimestamp);
+        updateStats(stats.enemyStats, event, itemDetails, timestamp);
+        updateStats(gameStats.enemyStats, event, itemDetails, timestamp);
     }
 
     return stats;
