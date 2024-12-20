@@ -99,7 +99,7 @@ function aggregatePlayerStats(aggregatedStats, stats) {
 
     aggregateTimestamps(aggregatedStats.kills, stats.basicStats?.kills?.timestamps || []);
     aggregateTimestamps(aggregatedStats.deaths, stats.basicStats?.deaths?.timestamps || []);
-    aggregateTimestamps(aggregatedStats.timeSpentDead, stats.basicStats.timeSpentDead.timestamps);
+    aggregateTimestamps(aggregatedStats.timeSpentDead, stats.basicStats.timeSpentDead.totalDeathTime);
     aggregateTimestamps(aggregatedStats.assists, stats.basicStats?.assists?.timestamps || []);
     aggregateTimestamps(aggregatedStats.kda, stats.basicStats?.kda?.timestamps || []);
     aggregateTimestamps(aggregatedStats.turrets, stats.objectives?.turrets?.timestamps || []);
@@ -115,8 +115,8 @@ function aggregatePlayerStats(aggregatedStats, stats) {
 
     aggregateGoldTimestamps(aggregatedStats.itemGold, stats.economy?.itemPurchases?.items);
 
-    if (stats.basicStats?.kda?.history?.count && stats.basicStats?.kda?.history?.timestamps) {
-        aggregateKDATimestamps(aggregatedStats.kda, stats.basicStats?.kda?.history?.count, stats.basicStats?.kda?.history?.timestamps);
+    if (stats.basicStats?.kda?.history?.count && stats.basicStats.kda.history.timestamps) {
+        aggregateKDATimestamps(aggregatedStats.kda, stats.basicStats.kda.history.count, stats.basicStats.kda.history.timestamps);
     }
 }
 
