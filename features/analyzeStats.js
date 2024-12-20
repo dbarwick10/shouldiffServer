@@ -562,8 +562,6 @@ function processBuildingKill(event, playerParticipantId, teamParticipantIds, sta
             gameStats.enemyStats.objectives.inhibitors.timestamps.push(timestamp);
         }
     }
-
-    //stats.events.push({ type: 'buildingKill', timestamp, details: event });
 }
 
 function processMonsterKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId) {
