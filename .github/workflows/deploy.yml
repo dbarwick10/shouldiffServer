@@ -1,0 +1,23 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: shouldiff.ddns.net
+          username: dbar
+          key: ${{ secrets.DEPLOY_KEY }}
+          port: 22
+          script: |
+            cd /opt/shouldiffServer
+            git pull
+            npm install
+            pm2 restart all
