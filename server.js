@@ -14,45 +14,38 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-    origin: [
-        'http://127.0.0.1:5501',        
-        'http://localhost:5501',         
-        'http://127.0.0.1:10000',        
-        'http://localhost:10000',         
-        'https://shouldiff.netlify.app',
-        'http://shouldiff.com',
-        'https://shouldiff.com',
-        'https://dbarwick10.github.io',  // Changed to base domain
-        'https://dbarwick10.github.io/shouldiff/',
-        'https://shouldiffserver-new.onrender.com'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    origin: function(origin, callback) {
+        const allowedOrigins = [
+            'http://127.0.0.1:5501',        
+            'http://localhost:5501',         
+            'http://127.0.0.1:10000',        
+            'http://localhost:10000',         
+            'https://shouldiff.netlify.app',
+            'http://shouldiff.com',
+            'http://test.shouldiff.com',
+            'https://test.shouldiff.com',
+            'https://shouldiff.com',
+            'https://dbarwick10.github.io',
+            'https://dbarwick10.github.io/shouldiff/',
+            'https://shouldiffserver-new.onrender.com',
+            'http://shouldiff.ddns.net:3000',
+            'https://shouldiff.ddns.net:3000'
+        ];
+        
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.log('Origin not allowed:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
-    maxAge: 86400 // Cache preflight requests for 24 hours
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Access-Control-Allow-Origin', 'Accept']
 }));
-
-// Add explicit CORS headers middleware after the cors() middleware
-app.use((req, res, next) => {
-    // Get the origin from the request
-    const origin = req.headers.origin;
-    
-    // Check if the origin is in our allowed list
-    if (origin && origin.match(/(localhost|127\.0\.0\.1|shouldiff\.netlify\.app|dbarwick10\.github\.io)/)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-    
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
-    next();
-});
 
 app.use(express.json());
 
