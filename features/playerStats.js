@@ -10,9 +10,7 @@ export function calculatePlayerStats(matchStats, puuid) {
         surrenderLossTime: []
     };
 
-    // Helper function to calculate averages for a game data array
     const calculateGameDataAverages = (games) => {
-        // Check if games array is empty
         if (!games || !games.length) {
             return {
                 kda: 0,
@@ -24,7 +22,6 @@ export function calculatePlayerStats(matchStats, puuid) {
             };
         }
 
-        // Calculate averages only if we have games
         return {
             kda: games.reduce((sum, game) => sum + game.kda, 0) / games.length,
             level: games.reduce((sum, game) => sum + game.level, 0) / games.length,
@@ -74,26 +71,22 @@ export function calculatePlayerStats(matchStats, puuid) {
         }
     });
 
-    // Helper function to format time
     const formatTime = (seconds) => {
         if (!seconds && seconds !== 0) return "0m 0s";
         return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
     };
 
-    // Calculate average times with safety check
     const calculateAverage = (times) => {
         if (!times.length) return 0;
         const sum = times.reduce((a, b) => a + b, 0);
         return sum / times.length;
     };
 
-    // Calculate and store all averages
     playerStats.winStats = calculateGameDataAverages(playerStats.wins);
     playerStats.lossStats = calculateGameDataAverages(playerStats.losses);
     playerStats.surrenderWinStats = calculateGameDataAverages(playerStats.surrenderWins);
     playerStats.surrenderLossStats = calculateGameDataAverages(playerStats.surrenderLosses);
 
-    // Calculate and format all times
     playerStats.averageWinTime = calculateAverage(playerStats.winTime);
     playerStats.averageLossTime = calculateAverage(playerStats.lossTime);
     playerStats.averageSurrenderWinTime = calculateAverage(playerStats.surrenderWinTime);
@@ -104,14 +97,11 @@ export function calculatePlayerStats(matchStats, puuid) {
     playerStats.surrenderWinTime = formatTime(playerStats.averageSurrenderWinTime);
     playerStats.surrenderLossTime = formatTime(playerStats.averageSurrenderLossTime);
 
-    // console.log('Player stats:', playerStats);
     return playerStats;
 }
 
-// Helper function to get player's team ID and match ID
 export async function getPlayerTeamId(matchData, puuid) {
     try {
-        // Check if matchData is iterable
         if (!Array.isArray(matchData)) {
             console.error('matchData is not an array:', typeof matchData);
             return null;
@@ -125,7 +115,6 @@ export async function getPlayerTeamId(matchData, puuid) {
 
             const playerParticipant = match.info.participants.find(p => p.puuid === puuid);
             if (playerParticipant) {
-                // console.log(`Found player with puuid ${puuid} in match ${match.metadata?.matchId}`);
                 return { 
                     teamId: playerParticipant.teamId, 
                     matchId: match.metadata?.matchId 
@@ -141,7 +130,6 @@ export async function getPlayerTeamId(matchData, puuid) {
     }
 }
 
-// Updated function to get teammates and enemies using getPlayerTeamId
 export async function getPlayerTeamMatesAndEnemies(matchData, puuid) {
     try {
         if (!Array.isArray(matchData)) {
@@ -166,7 +154,6 @@ export async function getPlayerTeamMatesAndEnemies(matchData, puuid) {
                 continue;
             }
 
-            // Get player's team information for this match
             const playerTeamInfo = await getPlayerTeamId([match], puuid);
             if (!playerTeamInfo) {
                 console.warn(`Could not find player team info for match ${matchId}`);
@@ -174,10 +161,8 @@ export async function getPlayerTeamMatesAndEnemies(matchData, puuid) {
             }
 
             const gameMode = match.info?.gameMode;
-            // Initialize array for this match's teammates
             teammatesByMatch[matchId] = [];
 
-            // Process all participants
             for (const participant of match.info.participants) {
                 if (participant.puuid === puuid) {
                     player.push({
@@ -185,31 +170,20 @@ export async function getPlayerTeamMatesAndEnemies(matchData, puuid) {
                         matchId
                     });
                 }
-                // Determine if participant is teammate or enemy
                 if (participant.teamId === playerTeamInfo.teamId) {
-                    // Add to teammates
                     teamMates.push({
                         ...participant,
                         matchId
                     });
                     teammatesByMatch[matchId].push(participant.participantId);
                 } else {
-                    // Add to enemies
                     enemies.push({
                         ...participant,
                         matchId
                     });
                 }
             }
-
-            // console.log(`Processed match ${matchId}:`, {
-            //     gameMode: gameMode,
-            //     teammateCount: teammatesByMatch[matchId].length,
-            //     enemyCount: match.info.participants.length - teammatesByMatch[matchId].length
-            // });
         }
-
-        // console.log('Teammates by match:', teammatesByMatch);
 
         return {
             teamMates,
@@ -247,7 +221,6 @@ export async function getPlayerId(matchData, puuid) {
 
             const playerParticipant = match.info.participants.find(p => p.puuid === puuid);
             if (playerParticipant) {
-                // console.log(`Found player ID for puuid ${puuid} in match ${matchId}`);
                 return {
                     participantId: playerParticipant.participantId,
                     matchId

@@ -23,7 +23,7 @@ export function calculateEnemyTeamStats(matchStats, puuid) {
             timeSpentDead: enemyTeam.reduce((sum, enemy) => sum + (enemy.totalTimeSpentDead || 0), 0) / enemyTeam.length,
             turretsKilled: enemyTeam.reduce((sum, enemy) => sum + (enemy.turretKills || 0), 0),
             inhibitorsKilled: enemyTeam.reduce((sum, enemy) => sum + (enemy.inhibitorKills || 0), 0),
-            gameDuration: gameDuration // Add game duration in seconds
+            gameDuration: gameDuration 
         };
 
         const enemyTeamResult = match.info.teams.find(t => t.teamId !== player.teamId);

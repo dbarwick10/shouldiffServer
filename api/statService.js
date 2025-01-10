@@ -15,16 +15,13 @@ import {
 
 export async function getPlayerStats(summonerName, tagLine, region, gameMode) {
     try {
-        // Get PUUID
         const puuid = await getPuuid(summonerName, tagLine, region);
         
-        // Get match stats and events in parallel
         const [matchStats, matchEvents] = await Promise.all([
             getMatchStats(puuid, region, gameMode),
             getMatchEvents(puuid, region)
         ]);
 
-        // Calculate all stats in parallel
         const [
             playerStats,
             teamStats,
@@ -39,7 +36,6 @@ export async function getPlayerStats(summonerName, tagLine, region, gameMode) {
             calculateLiveStats()
         ]);
 
-        // Calculate average event times
         const averageEventTimes = await calculateAverageEventTimes(timelineAnalysis);
 
         return {

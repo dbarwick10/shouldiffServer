@@ -23,15 +23,12 @@ class RiotAPIService {
         try {
             console.log('Fetching match IDs...');
             
-            // Determine queue number based on gameMode
             const queue = gameMode && this.queueMappings[gameMode.toLowerCase()]
                 ? this.queueMappings[gameMode.toLowerCase()]
                 : null;
 
-            // Request more matches initially if filtering by game mode
             const initialCount = MATCH_COUNT;
 
-            // Construct URL with queue parameter if specified
             const matchIdsUrl = queue != null 
                 ? `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?queue=${encodeURIComponent(queue)}&start=0&count=${initialCount}&api_key=${this.apiKey}`
                 : `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?start=0&count=${initialCount}&api_key=${this.apiKey}`;
@@ -44,7 +41,6 @@ class RiotAPIService {
             const matchIds = await response.json();
             console.log(`Received ${matchIds.length} matches from API, will process up to ${MATCH_COUNT}`);
                         
-            // Store the match IDs
             this.matchIds.set(puuid, matchIds);
 
             const matchDetails = [];
@@ -57,7 +53,6 @@ class RiotAPIService {
                 if (matchResponse.ok) {
                     const matchData = await matchResponse.json();
                     
-                    // Additional filtering if needed
                     if (!queue || matchData.info.queueId === queue) {
                         matchDetails.push(matchData);
                         console.log(`Added Match Stats. Current count: ${matchDetails.length}/${MATCH_COUNT}`);
@@ -66,7 +61,6 @@ class RiotAPIService {
                     console.error(`Failed to fetch match ${matchId}`);
                 }
                 
-                // Add a small delay between requests to avoid rate limiting
                 await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
             }
 
@@ -97,7 +91,6 @@ class RiotAPIService {
                 } else {
                     console.error(`Failed to fetch events for match ${matchId}`);
                 }
-                // Add a small delay between requests to avoid rate limiting
                 await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
             }
 

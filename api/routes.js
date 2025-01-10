@@ -52,12 +52,10 @@ router.post('/stats', async (req, res) => {
             });
             res.status(500).json({ 
                 error: 'Failed to process stats', 
-                details: error.message,
-                stack: error.stack // Remove in production
+                details: error.message
             });
         }
 
-        // Extract needed data before clearing
         const responseData = {
             playerStats: analysis.individualGameStats[0]?.playerStats || {},
             teamStats: analysis.individualGameStats[0]?.teamStats || {},
@@ -66,7 +64,6 @@ router.post('/stats', async (req, res) => {
             liveStats
         };
 
-        // Send processed data
         console.log('Sending response...');
         res.json(responseData);
 
@@ -75,7 +72,6 @@ router.post('/stats', async (req, res) => {
     } catch (error) {
         console.error('Error processing request:', error);
         
-        // Parse the error message if it's from Riot API
         let errorMessage = error.message;
         try {
             if (error.message.includes('Failed to fetch PUUID:')) {
@@ -83,17 +79,14 @@ router.post('/stats', async (req, res) => {
                 errorMessage = riotError.status.message;
             }
         } catch (e) {
-            // If parsing fails, use the original error message
             console.error('Error parsing Riot API error:', e);
         }
 
-        // Send a structured error response
         res.status(400).json({
             error: errorMessage,
             details: error.message
         });
     } finally {
-        // Clear large data structures
         if (matchStats) {
             matchStats.matches = null;
             matchStats = null;
@@ -108,13 +101,11 @@ router.post('/stats', async (req, res) => {
             analysis = null;
         }
 
-        // Clear large data structures we don't need anymore
         clearObject(matchStats);
         clearObject(matchEvents);
         clearObject(analysis);
         runGC();
         
-        // Force garbage collection if available
         if (global.gc) {
             try {
                 global.gc();
@@ -125,7 +116,6 @@ router.post('/stats', async (req, res) => {
     }
 });
 
-// Keep your existing routes
 router.get('/puuid', async (req, res) => {
     const { summonerName, region, tagline } = req.query;
 
@@ -213,30 +203,10 @@ router.get('/match-events', async (req, res) => {
     }
 });
 
-// router.get('/live-stats', async (req, res) => {
-//     try {
-//         const liveStats = await calculateLiveStats();
-//         console.log('Live stats data'); // Add this
-
-//         if (!liveStats) {
-//             return res.status(404).json({ error: 'No live game found' });
-//         }
-//         res.json(liveStats);
-//     } catch (error) {
-//         console.error('Server error in /api/live-stats:', error);
-//         res.status(500).json({ 
-//             error: 'Internal server error', 
-//             details: error.message 
-//         });
-//     }
-// });
-
-// Helper function to clear object properties
 function clearObject(obj) {
     if (!obj) return;
     for (const key in obj) {
         if (Array.isArray(obj[key])) {
-            // Clear each element in the array
             obj[key].forEach((item, index) => {
                 if (typeof item === 'object') {
                     clearObject(item);
@@ -249,11 +219,9 @@ function clearObject(obj) {
         }
         obj[key] = null;
     }
-    // Clear any properties on the prototype chain
     Object.setPrototypeOf(obj, null);
 }
 
-// Helper function to safely run garbage collection
 function runGC() {
     if (global.gc) {
         try {

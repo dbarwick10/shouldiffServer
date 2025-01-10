@@ -16,7 +16,6 @@ export async function getLiveData() {
     }
 
     try {
-        // If polling isn't started, start it and do initial fetch
         if (!pollingInterval) {
             await fetchLiveGameData().then(data => {
                 cachedData = data;
@@ -66,12 +65,10 @@ function startPolling() {
 
     console.log('Starting live game data polling...');
     
-    // Initial fetch
     fetchLiveGameData().then(data => {
         cachedData = data;
     });
 
-    // Set up interval for subsequent fetches
     pollingInterval = setInterval(async () => {
         const newData = await fetchLiveGameData();
         if (newData) {
@@ -90,6 +87,5 @@ function stopPolling() {
     }
 }
 
-// Clean up when the process exits
 process.on('SIGTERM', stopPolling);
 process.on('SIGINT', stopPolling);

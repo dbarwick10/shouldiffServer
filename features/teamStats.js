@@ -23,7 +23,7 @@ export function calculateTeamStats(matchStats, puuid) {
             timeSpentDead: playerTeam.reduce((sum, teammate) => sum + (teammate.totalTimeSpentDead || 0), 0) / playerTeam.length,
             turretsKilled: playerTeam.reduce((sum, teammate) => sum + (teammate.turretKills || 0), 0),
             inhibitorsKilled: playerTeam.reduce((sum, teammate) => sum + (teammate.inhibitorKills || 0), 0),
-            gameDuration: gameDuration // Include game duration in seconds
+            gameDuration: gameDuration
         };
 
         const team = match.info.teams.find(t => t.teamId === player.teamId);
@@ -46,4 +46,3 @@ export function calculateTeamStats(matchStats, puuid) {
 
     return teamStats;
 }
-//github test

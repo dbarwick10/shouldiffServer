@@ -12,7 +12,6 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors({
     origin: function(origin, callback) {
         const allowedOrigins = [
@@ -32,7 +31,6 @@ app.use(cors({
             'https://shouldiff.ddns.net:3000'
         ];
         
-        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
         
         if (allowedOrigins.includes(origin)) {
@@ -61,37 +59,33 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api', apiRoutes);
 
-// Serve static files
+// static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
     res.status(err.status || 500).json({ error: err.message });
 });
 
-// Function to format memory usage
 function formatMemoryUsage(bytes) {
     return `${Math.round(bytes / 1024 / 1024 * 100) / 100} MB`;
 }
 
-// Function to get memory stats
 function getMemoryStats() {
     const memoryData = process.memoryUsage();
     return {
-        rss: formatMemoryUsage(memoryData.rss), // RSS: total memory allocated
-        heapTotal: formatMemoryUsage(memoryData.heapTotal), // Total size of allocated heap
-        heapUsed: formatMemoryUsage(memoryData.heapUsed), // Actual memory used
-        external: formatMemoryUsage(memoryData.external) // Memory used by external C++ objects
+        rss: formatMemoryUsage(memoryData.rss), 
+        heapTotal: formatMemoryUsage(memoryData.heapTotal),
+        heapUsed: formatMemoryUsage(memoryData.heapUsed),
+        external: formatMemoryUsage(memoryData.external)
     };
 }
 
-const MEMORY_LOG_INTERVAL = 600000; // Log every 10 minutes
+const MEMORY_LOG_INTERVAL = 600000;
 setInterval(() => {
     console.log('Periodic memory check:', getMemoryStats());
 }, MEMORY_LOG_INTERVAL);
 
-// Start server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
     console.log('Available endpoints:');

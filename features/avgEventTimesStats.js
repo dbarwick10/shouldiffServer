@@ -84,19 +84,6 @@ function aggregatePlayerStats(aggregatedStats, stats) {
         return;
     }
 
-    // console.log('Comparing death data formats:', {
-    //     deathTimestamps: {
-    //         data: stats.basicStats?.deaths?.timestamps,
-    //         type: typeof stats.basicStats?.deaths?.timestamps?.[0],
-    //         sample: stats.basicStats?.deaths?.timestamps?.[0]
-    //     },
-    //     totalDeathTime: {
-    //         data: stats.basicStats?.timeSpentDead?.totalDeathTime,
-    //         type: typeof stats.basicStats?.timeSpentDead?.totalDeathTime?.[0],
-    //         sample: stats.basicStats?.timeSpentDead?.totalDeathTime?.[0]
-    //     }
-    // });
-
     aggregateTimestamps(aggregatedStats.kills, stats.basicStats?.kills?.timestamps || []);
     aggregateTimestamps(aggregatedStats.deaths, stats.basicStats?.deaths?.timestamps || []);
     aggregateTimestamps(aggregatedStats.timeSpentDead, stats.basicStats?.deaths?.totalDeathTime);
@@ -133,18 +120,13 @@ function aggregateTimestamps(aggregatedArray, timestamps) {
 }
 
 function aggregateDeathTimes(aggregatedArray, timestamps) {
-    // console.log('Original timestamps:', timestamps);
     
-    // Convert to array using Object.values
     const actualTimestamps = Object.values(timestamps);
     
-    // Try alternate methods if first one fails
     if (actualTimestamps.length === 0 && timestamps && typeof timestamps === 'object') {
         const keys = Object.keys(timestamps).filter(k => !isNaN(parseInt(k)));
         const manualArray = keys.map(k => timestamps[k]);
         
-
-        // Use the manual array if it has values
         if (manualArray.length > 0) {
             manualArray.forEach((timestamp, index) => {
                 if (timestamp === undefined || timestamp === null) return;
@@ -162,7 +144,6 @@ function aggregateKDATimestamps(aggregatedArray, kdaValues, timestamps) {
     if (!Array.isArray(kdaValues) || !Array.isArray(timestamps)) return;
 
     timestamps.forEach((timestamp, index) => {
-        // Ensure both timestamp and kdaValue are valid
         if (
             timestamp === undefined || 
             timestamp === null || 
@@ -184,7 +165,6 @@ function aggregateKDATimestamps(aggregatedArray, kdaValues, timestamps) {
 }
 
 function aggregateGoldTimestamps(aggregatedArray, items) {
-    // Ensure items is an array before processing
     if (!Array.isArray(items)) {
         console.error('Invalid items data:', items);
         return;
@@ -194,76 +174,45 @@ function aggregateGoldTimestamps(aggregatedArray, items) {
         const gold = item?.gold;
         const timestamp = item?.timestamp;
 
-        // Validate both gold and timestamp
         if (
             gold === undefined ||
             timestamp === undefined ||
             isNaN(gold) ||
             isNaN(timestamp)
         ) {
-            // console.log('Skipping invalid item at index:', index, 'gold:', gold, 'timestamp:', timestamp);
             return;
         }
 
-        // Initialize sub-array if necessary
         if (!aggregatedArray[index]) {
             aggregatedArray[index] = [];
         }
 
-        // Push the object into the aggregated array
         aggregatedArray[index].push({
             gold: gold,
             timestamp: timestamp
         });
-
-        // console.log('Pushed item into aggregatedArray at index:', index, {
-        //     gold,
-        //     timestamp
-        // });
     });
 }
 
 
-// Aggregate item gold data
 function aggregateItemGold(aggregatedArray, amounts, timestamps) {
-    // console.log('Aggregating Item Gold - Debug Info:');
-    // console.log('Input Arguments:');
-    // console.log('aggregatedArray:', aggregatedArray);
-    // console.log('amounts:', amounts);
-    // console.log('timestamps:', timestamps);
-
-    // Detailed type and content checking
-    // console.log('Type Checks:');
-    // console.log('amounts is Array:', Array.isArray(amounts));
-    // console.log('timestamps is Array:', Array.isArray(timestamps));
-    
     if (!Array.isArray(amounts) || !Array.isArray(timestamps)) {
         console.warn('Invalid input: amounts or timestamps is not an array');
-        // console.log('amounts type:', typeof amounts);
-        // console.log('timestamps type:', typeof timestamps);
+        
         return aggregatedArray || [];
     }
 
-    // console.log('amounts length:', amounts.length);
-    // console.log('timestamps length:', timestamps.length);
-
-    // If arrays are empty, return existing aggregated array
     if (amounts.length === 0 || timestamps.length === 0) {
         console.warn('Amounts or timestamps array is empty');
         return aggregatedArray || [];
     }
 
-    // Ensure aggregatedArray is an array
     aggregatedArray = Array.isArray(aggregatedArray) ? aggregatedArray : [];
 
-    // Ensure array has enough slots
     while (aggregatedArray.length < timestamps.length) {
         aggregatedArray.push([]);
     }
 
-    // console.log('After slot preparation, aggregatedArray:', aggregatedArray);
-
-    // Process each timestamp and amount
     for (let index = 0; index < timestamps.length; index++) {
         const timestamp = Number(timestamps[index]);
         const amount = Number(amounts[index]);
@@ -275,7 +224,6 @@ function aggregateItemGold(aggregatedArray, amounts, timestamps) {
             amountType: typeof amounts[index]
         });
 
-        // Validate timestamp and amount
         if (
             isNaN(timestamp) || 
             isNaN(amount) ||
@@ -284,29 +232,21 @@ function aggregateItemGold(aggregatedArray, amounts, timestamps) {
             timestamp === null || 
             amount === null
         ) {
-            // console.warn(`Skipping invalid entry at index ${index}:`, {
-            //     timestamp: timestamps[index],
-            //     amount: amounts[index]
-            // });
             continue;
         }
 
-        // Ensure the sub-array exists
         if (!aggregatedArray[index]) {
             aggregatedArray[index] = [];
         }
 
-        // Add the entry
         aggregatedArray[index].push({
             timestamp: timestamp,
             amount: amount
         });
     }
 
-    // console.log('Final aggregatedArray:', aggregatedArray);
     return aggregatedArray;
 }
-
 
 function calculateAverageForCategories(categories) {
     return {

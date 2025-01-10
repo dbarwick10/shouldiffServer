@@ -20,13 +20,13 @@ async function getVersions() {
     try {
         const response = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
         const versions = await response.json();
-        cache.versions = versions.slice(0, 3); // Cache the last 3 versions
+        cache.versions = versions.slice(0, 3);
         cache.lastFetch = Date.now();
         return cache.versions;
     } catch (error) {
         console.error('Error fetching versions:', error);
         if (cache.versions.length > 0) {
-            return cache.versions; // Use cached versions as fallback
+            return cache.versions;
         }
         throw error;
     }
@@ -64,7 +64,6 @@ export async function getItemDetails(itemId) {
                     gold: item.gold,
                     description: item.description,
                     stats: item.stats,
-                    // Add any other properties you need
                 };
             }
         }
@@ -76,7 +75,6 @@ export async function getItemDetails(itemId) {
     }
 }
 
-// Cache management functions
 export function clearCache() {
     cache.versions = [];
     cache.items.clear();

@@ -1,15 +1,9 @@
 export async function analyzeMatchTimelineForSummoner(matchStats, puuid) {
     try {
-        // Input validation
         if (!matchStats || !puuid) {
-            // console.error('Missing required parameters:', { 
-            //     hasMatchStats: !!matchStats, 
-            //     hasPuuid: !!puuid 
-            // });
             return null;
         }
 
-        // Normalize matchStats to handle both direct array and object with matches property
         const matches = Array.isArray(matchStats) ? matchStats : matchStats.matches;
 
         if (!matches || !Array.isArray(matches)) {
@@ -17,11 +11,9 @@ export async function analyzeMatchTimelineForSummoner(matchStats, puuid) {
             return null;
         }
 
-        // Initialize analysis result
         const analysisResult = createInitialAnalysisResult();
-        const matchEventsData = []; // Array to collect matchId and allEvents
+        const matchEventsData = [];
 
-        // Process each match
         for (const match of matches) {
             const matchId = match.metadata?.matchId;
             if (!matchId) {
@@ -34,29 +26,22 @@ export async function analyzeMatchTimelineForSummoner(matchStats, puuid) {
                 continue;
             }
 
-            // console.log(`Processing match ${matchId}`);
-
-            // Collect all events for the match
             const allEvents = [];
 
-            // Process each frame in the match
             for (const frame of match.info.frames) {
                 if (!Array.isArray(frame.events)) {
                     console.error('Frame is missing events');
                     continue;
                 }
 
-                // Collect events from the frame
                 allEvents.push(...frame.events);
 
-                // Process each event in the frame
                 for (const event of frame.events) {
                     if (!event?.type) {
                         console.warn('Skipping invalid event', event);
                         continue;
                     }
 
-                    // Handle event using appropriate handler
                     const handler = eventHandlers[event.type];
                     if (handler) {
                         handler(event, analysisResult, matchId);
@@ -64,15 +49,10 @@ export async function analyzeMatchTimelineForSummoner(matchStats, puuid) {
                 }
             }
 
-            // Log the matchId and all events for the match
-            // console.log(`Match ID: ${matchId}, Events:`, allEvents);
-
-            // Collect matchId and allEvents
             matchEventsData.push({ matchId, allEvents });
         }
 
-        // console.log('events complete:', matchEventsData);
-        return matchEventsData; // Return the array of matchId and allEvents
+        return matchEventsData;
     } catch (error) {
         console.error('Error in analyzeMatchTimelineForSummoner:', error);
         return null;
