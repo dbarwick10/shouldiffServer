@@ -12,13 +12,13 @@ router.post('/stats', async (req, res) => {
     let analysis = null;
     
     try {
-        const { summonerName, tagLine, region, gameMode } = req.body;
-        console.log('Processing request for:', { summonerName, tagLine, region, gameMode });
+        const { summonerName, tagLine, gameMode } = req.body;
+        console.log('Processing request for:', { summonerName, tagLine, gameMode });
 
-        // Step 1: Get PUUID
-        const puuidData = await getRiotData.getPuuid(summonerName, tagLine, region);
-        const puuid = puuidData.puuid;
-        console.log('PUUID obtained:', puuid);
+        // Step 1: Get PUUID and region
+        const puuidData = await getRiotData.getPuuid(summonerName, tagLine);
+        const { puuid, region } = puuidData;
+        console.log('PUUID obtained:', puuid, 'in region:', region);
 
         // Step 2: Get match stats
         console.log('Getting match stats...');

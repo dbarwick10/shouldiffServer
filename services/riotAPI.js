@@ -17,8 +17,51 @@ class RiotAPIService {
         this.apiKey = process.env.RIOT_API_KEY;
         this.matchIds = new Map();
         this.queueMappings = QUEUE_MAPPINGS;
+        this.regions = [
+            'americas',
+            'europe',
+            'asia',
+            'sea'
+        ];
     }
 
+    async getPuuid(summonerName, tagline) {
+        const tag = tagline.replace(/[^a-zA-Z0-9 ]/g, "");
+        console.log(`Searching for player: ${summonerName}#${tag}`);
+        
+        for (const region of this.regions) {
+            try {
+                const riotUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(summonerName)}/${encodeURIComponent(tag)}`;
+                console.log(`Trying region ${region} with URL: ${riotUrl}`);
+                
+                const response = await fetch(`${riotUrl}?api_key=${this.apiKey}`);
+                const responseText = await response.text();
+                
+                console.log(`Response from ${region}:`, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: responseText
+                });
+                
+                if (response.ok) {
+                    const data = JSON.parse(responseText);
+                    console.log(`Found player in ${region}`);
+                    return {
+                        ...data,
+                        region
+                    };
+                }
+            } catch (error) {
+                console.error(`Error searching in ${region}:`, error);
+                continue;
+            }
+        }
+        
+        // If no region found the player
+        throw new Error(`Player "${summonerName}#${tag}" not found in any region (searched: ${this.regions.join(', ')})`);
+    }
+
+    // Update getMatchStats to use the region from getPuuid
     async getMatchStats(puuid, region, gameMode) {
         try {
             console.log('Fetching match IDs...');
@@ -72,6 +115,7 @@ class RiotAPIService {
         }
     }
 
+    // getMatchEvents remains the same but uses the region from getPuuid
     async getMatchEvents(puuid, region) {
         const matchIds = this.matchIds.get(puuid);
         if (!matchIds || matchIds.length === 0) {
@@ -87,7 +131,6 @@ class RiotAPIService {
                     const eventData = await response.json();
                     matchEvents.push(eventData);
                     console.log(`Analyzing Match Events. Current count: ${matchEvents.length}/${MATCH_COUNT}`);
-
                 } else {
                     console.error(`Failed to fetch events for match ${matchId}`);
                 }
@@ -100,23 +143,6 @@ class RiotAPIService {
         } catch (error) {
             this.matchIds.delete(puuid);
             console.error('Error in getMatchEvents:', error);
-            throw error;
-        }
-    }
-
-    async getPuuid(summonerName, tagline, region) {
-        try {
-            const tag = tagline.replace(/[^a-zA-Z0-9 ]/g, "");
-            const riotUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(summonerName)}/${encodeURIComponent(tag)}`;
-            const response = await fetch(`${riotUrl}?api_key=${this.apiKey}`);
-            
-            if (!response.ok) {
-                throw new Error(`Failed to fetch PUUID: ${await response.text()}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error in getPuuid:', error);
             throw error;
         }
     }
