@@ -55,6 +55,8 @@ function initializeAggregatedStats() {
         inhibitors: [],
         eliteMonsterKills: [],
         barons: [],
+        riftHeralds: [],
+        hordeKills: [],
         dragons: [],
         elders: [],
         itemGold: [],
@@ -97,6 +99,8 @@ function aggregatePlayerStats(aggregatedStats, stats) {
     aggregateTimestamps(aggregatedStats.inhibitors, stats.objectives?.inhibitors?.timestamps || []);
     aggregateTimestamps(aggregatedStats.eliteMonsterKills, stats.objectives?.eliteMonsterKills?.timestamps || []);
     aggregateTimestamps(aggregatedStats.barons, stats.objectives?.barons?.timestamps || []);
+    aggregateTimestamps(aggregatedStats.hordeKills, stats.objectives?.hordeKills?.timestamps || []);
+    aggregateTimestamps(aggregatedStats.riftHeralds, stats.objectives?.riftHeralds?.timestamps || []);
     aggregateTimestamps(aggregatedStats.dragons, stats.objectives?.dragons?.timestamps || []);
     aggregateTimestamps(aggregatedStats.elders, stats.objectives?.elders?.timestamps || []);
 
@@ -271,6 +275,8 @@ function calculateAverageTimesForStats(aggregatedStats) {
         inhibitors: calculateAverageTimes(aggregatedStats.inhibitors),
         eliteMonsterKills: calculateAverageTimes(aggregatedStats.eliteMonsterKills),
         barons: calculateAverageTimes(aggregatedStats.barons),
+        riftHeralds: calculateAverageTimes(aggregatedStats.riftHeralds),
+        hordeKills: calculateAverageTimes(aggregatedStats.hordeKills),
         dragons: calculateAverageTimes(aggregatedStats.dragons),
         elders: calculateAverageTimes(aggregatedStats.elders),
         timeSpentDead: calculateAverageTimes(aggregatedStats.timeSpentDead),

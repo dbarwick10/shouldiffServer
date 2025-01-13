@@ -44,6 +44,8 @@ function initializeStats(matchId) {
             },
             inhibitors: { count: 0, timestamps: [] },
             eliteMonsterKills: { count: 0, timestamps: [] },
+            hordeKills: { count: 0, timestamps: [] },
+            riftHeralds: { count: 0, timestamps: [] },
             dragons: { count: 0, timestamps: [] },
             barons: { count: 0, timestamps: [] },
             elders: { count: 0, timestamps: [] }
@@ -516,7 +518,43 @@ function processMonsterKill(event, playerParticipantId, teamParticipantIds, stat
         gameStats.enemyStats.objectives.eliteMonsterKills.timestamps.push(timestamp);
     }
 
-    if (event.monsterType === 'DRAGON') {
+    if (event.monsterType === 'RIFTHERALD') {
+        if (event.killerId === playerParticipantId) {
+            stats.playerStats.objectives.riftHeralds.count++;
+            stats.playerStats.objectives.riftHeralds.timestamps.push(timestamp);
+            gameStats.playerStats.objectives.riftHeralds.count++;
+            gameStats.playerStats.objectives.riftHeralds.timestamps.push(timestamp);
+        } else if (teamParticipantIds.includes(event.killerId)) {
+            stats.teamStats.objectives.riftHeralds.count++;
+            stats.teamStats.objectives.riftHeralds.timestamps.push(timestamp);
+            gameStats.teamStats.objectives.riftHeralds.count++;
+            gameStats.teamStats.objectives.riftHeralds.timestamps.push(timestamp);
+        } else {
+            stats.enemyStats.objectives.riftHeralds.count++;
+            stats.enemyStats.objectives.riftHeralds.timestamps.push(timestamp);
+            gameStats.enemyStats.objectives.riftHeralds.count++;
+            gameStats.enemyStats.objectives.riftHeralds.timestamps.push(timestamp);
+        }
+
+    } else if (event.monsterType === 'HORDE') {
+            if (event.killerId === playerParticipantId) {
+                stats.playerStats.objectives.hordeKills.count++;
+                stats.playerStats.objectives.hordeKills.timestamps.push(timestamp);
+                gameStats.playerStats.objectives.hordeKills.count++;
+                gameStats.playerStats.objectives.hordeKills.timestamps.push(timestamp);
+            } else if (teamParticipantIds.includes(event.killerId)) {
+                stats.teamStats.objectives.hordeKills.count++;
+                stats.teamStats.objectives.hordeKills.timestamps.push(timestamp);
+                gameStats.teamStats.objectives.hordeKills.count++;
+                gameStats.teamStats.objectives.hordeKills.timestamps.push(timestamp);
+            } else {
+                stats.enemyStats.objectives.hordeKills.count++;
+                stats.enemyStats.objectives.hordeKills.timestamps.push(timestamp);
+                gameStats.enemyStats.objectives.hordeKills.count++;
+                gameStats.enemyStats.objectives.hordeKills.timestamps.push(timestamp);
+            }
+
+    } else if (event.monsterType === 'DRAGON') {
         if (event.killerId === playerParticipantId) {
             stats.playerStats.objectives.dragons.count++;
             stats.playerStats.objectives.dragons.timestamps.push(timestamp);
