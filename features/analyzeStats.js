@@ -148,19 +148,20 @@ export async function analyzePlayerStats(matchStats, puuid, gameResultMatches) {
 
             const teamParticipantIds = playerParticipantId <= 5 ? [1, 2, 3, 4, 5] : [6, 7, 8, 9, 10];
 
-            processMatchEvents(allEvents, playerParticipantId, teamParticipantIds, aggregateStats, gameStats, matchId, matchStats, frames, gameResultMatches);
+            await processMatchEvents(allEvents, playerParticipantId, teamParticipantIds, aggregateStats, gameStats, matchId, matchStats, frames, gameResultMatches);
 
             individualGameStats.push(gameStats);
 
-            match.allEvents = null;
-            match.frames = null;
+            // console.log('After processing match:', !!individualGameStats[individualGameStats.length - 1]?.playerStats?.economy);
 
-            if (global.gc) {
-                try {
-                    global.gc();
-                } catch (e) {}
-            }
-            console.log('After processing match:', individualGameStats)
+            // match.allEvents = null;
+            // match.frames = null;
+
+            // if (global.gc) {
+            //     try {
+            //         global.gc();
+            //     } catch (e) {}
+            // }
         }
 
         return { 
@@ -194,24 +195,26 @@ function getParticipantInfo(events) {
 }
 
 async function processMatchEvents(events, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches) {
-    events.forEach(async event => {
-        const itemPurchases = await processItemPurchase(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId);
+    await Promise.all(events.map(async (event) => {
+        if (event.type === 'ITEM_PURCHASED') {
+            await processItemPurchase(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId);
+        }
         switch (event.type) {
             case 'CHAMPION_KILL': processChampionKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches); break;
             case 'BUILDING_KILL': processBuildingKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId); break;
             case 'ELITE_MONSTER_KILL': processMonsterKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId); break;
-            case 'ITEM_PURCHASED':  itemPurchases; break;
+            // case 'ITEM_PURCHASED':  itemPurchases; break;
         }
-    });
+    }));
 
-    console.log('After processing all events:', {
-        matchId,
-        totalEvents: events.length,
-        playerStats: {
-            itemCount: stats.playerStats.economy.itemPurchases.items.length,
-            totalGold: stats.playerStats.economy.itemGold.total
-        }
-    });
+    // console.log('After processing all events:', {
+    //     matchId,
+    //     totalEvents: events.length,
+    //     playerStats: {
+    //         itemCount: stats.playerStats.economy.itemPurchases.items.length,
+    //         totalGold: stats.playerStats.economy.itemGold.total
+    //     }
+    // });
 }
 
 async function processChampionKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches) {
@@ -657,12 +660,12 @@ async function processItemPurchase(event, playerParticipantId, teamParticipantId
 
     if (event.participantId === playerParticipantId) {
 
-        console.log('Before updating stats:', {
-            itemId: event.itemId,
-            goldValue,
-            timestamp,
-            currentItems: stats.playerStats.economy.itemPurchases.items.length
-        });
+        // console.log('Before updating stats:', {
+        //     itemId: event.itemId,
+        //     goldValue,
+        //     timestamp,
+        //     currentItems: stats.playerStats.economy.itemPurchases.items.length
+        // });
         // Player stats
         stats.playerStats.economy.itemPurchases.count++;
         stats.playerStats.economy.itemPurchases.timestamps.push(timestamp);
@@ -676,13 +679,13 @@ async function processItemPurchase(event, playerParticipantId, teamParticipantId
         stats.playerStats.economy.itemGold.history.count.push(goldValue);
         stats.playerStats.economy.itemGold.history.timestamps.push(timestamp);
 
-        console.log('After updating stats:', {
-            newTotal: stats.playerStats.economy.itemGold.total,
-            itemsCount: stats.playerStats.economy.itemPurchases.items.length,
-            latestItem: stats.playerStats.economy.itemPurchases.items[
-                stats.playerStats.economy.itemPurchases.items.length - 1
-            ]
-        });
+        // console.log('After updating stats:', {
+        //     newTotal: stats.playerStats.economy.itemGold.total,
+        //     itemsCount: stats.playerStats.economy.itemPurchases.items.length,
+        //     latestItem: stats.playerStats.economy.itemPurchases.items[
+        //         stats.playerStats.economy.itemPurchases.items.length - 1
+        //     ]
+        // });
 
         // Game stats
         gameStats.playerStats.economy.itemPurchases.count++;
