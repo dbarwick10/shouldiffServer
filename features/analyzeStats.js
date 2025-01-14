@@ -1,5 +1,5 @@
 import { analyzeMatchTimelineForSummoner } from './matchTimeline.js';
-// import { getItemDetails } from './getItemsAndPrices.js';
+import { getItemDetails } from './getItemsAndPrices.js';
 import { gameResult } from './endGameResult.js';
 
 const destroyedItems = new Map();
@@ -51,14 +51,17 @@ function initializeStats(matchId) {
             elders: { count: 0, timestamps: [] }
         },
         economy: {
-            itemPurchases: { 
-                count: 0, 
-                timestamps: [], 
-                items: [] 
+            itemPurchases: {
+                count: 0,
+                timestamps: [],
+                items: []
             },
-            itemGold: { 
-                total: 0, 
-                history: { count: [], timestamps: [] }
+            itemGold: {
+                total: 0,
+                history: {
+                    count: [],
+                    timestamps: []
+                }
             }
         },
         events: [],
@@ -157,6 +160,7 @@ export async function analyzePlayerStats(matchStats, puuid, gameResultMatches) {
                     global.gc();
                 } catch (e) {}
             }
+            console.log('After processing match:', individualGameStats)
         }
 
         return { 
@@ -189,13 +193,23 @@ function getParticipantInfo(events) {
     );
 }
 
-function processMatchEvents(events, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches) {
-    events.forEach(event => {
+async function processMatchEvents(events, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches) {
+    events.forEach(async event => {
+        const itemPurchases = await processItemPurchase(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId);
         switch (event.type) {
             case 'CHAMPION_KILL': processChampionKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId, matchStats, frames, gameResultMatches); break;
             case 'BUILDING_KILL': processBuildingKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId); break;
             case 'ELITE_MONSTER_KILL': processMonsterKill(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId); break;
-            case 'ITEM_PURCHASED': processItemPurchase(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId); break;
+            case 'ITEM_PURCHASED':  itemPurchases; break;
+        }
+    });
+
+    console.log('After processing all events:', {
+        matchId,
+        totalEvents: events.length,
+        playerStats: {
+            itemCount: stats.playerStats.economy.itemPurchases.items.length,
+            totalGold: stats.playerStats.economy.itemGold.total
         }
     });
 }
@@ -610,112 +624,132 @@ function processMonsterKill(event, playerParticipantId, teamParticipantIds, stat
     }
 }
 
-
-
-function initializeEconomyStats(target) {
-    target.economy = target.economy || {};
-    target.economy.itemPurchases = target.economy.itemPurchases || { count: 0, timestamps: [], items: [] };
-    target.economy.itemGold = target.economy.itemGold || { total: 0, history: { count: [], timestamps: [] } };
-    target.events = target.events || [];
-}
-
-function updateStats(target, event, itemDetails, timestamp) {
-    const itemGold = itemDetails?.gold?.base || 0;
-    const lastTotal = target.economy.itemPurchases.items.length > 0 
-    ? target.economy.itemPurchases.items[target.economy.itemPurchases.items.length - 1].totalGold 
-    : 0;
-    const totalGold = lastTotal + itemGold;
-
-    target.economy.itemPurchases.count++;
-    target.economy.itemPurchases.timestamps.push(timestamp);
-    target.economy.itemPurchases.items.push({
-        itemName: itemDetails.name || 'Unknown',
-        itemId: event.itemId,
-        timestamp,
-        gold: itemDetails.gold.base || 0,
-        totalGold: totalGold
-    });
-    target.economy.itemGold.total += itemDetails.gold.base || 0;
-    target.economy.itemGold.history.count.push(itemDetails.gold.base || 0);
-    target.economy.itemGold.history.timestamps.push(timestamp);
-}
-
-function trackDestroyedItems(participantId, componentIds) {
-    if (!destroyedItems.has(participantId)) {
-        destroyedItems.set(participantId, new Map());
-    }
-    const participantDestroyedItems = destroyedItems.get(participantId);
-
-    componentIds.forEach(itemId => {
-        participantDestroyedItems.set(
-            itemId,
-            (participantDestroyedItems.get(itemId) || 0) + 1
-        );
-    });
-}
-
-function wasItemDestroyed(participantId, itemId) {
-    const participantDestroyedItems = destroyedItems.get(participantId);
-    if (!participantDestroyedItems || !participantDestroyedItems.has(itemId)) {
-        return false;
-    }
-    const count = participantDestroyedItems.get(itemId);
-    if (count > 1) {
-        participantDestroyedItems.set(itemId, count - 1);
-    } else {
-        participantDestroyedItems.delete(itemId);
-    }
-    return true;
-}
-
-export function processItemDestroyed(event) {
-    if (event.type === 'ITEM_DESTROYED') {
-        trackDestroyedItems(event.participantId, [event.itemId]);
-    }
-}
-
-export async function processItemPurchase(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId) {
+async function processItemPurchase(event, playerParticipantId, teamParticipantIds, stats, gameStats, matchId) {
     if (event.type !== 'ITEM_PURCHASED') return stats;
-    event.matchId = matchId;
-    let itemDetails = { gold: { total: 0 }, from: [] };
+
+    const timestamp = event.timestamp / 1000;
+    
+    // Skip if item was destroyed
+    const key = `${event.participantId}-${event.itemId}`;
+    if (destroyedItems.has(key)) {
+        destroyedItems.delete(key);
+        return stats;
+    }
+
+    // Get the actual item price from the cache
+    let goldValue = 0;
     try {
-        if (event.itemId) {
-            // itemDetails = await getItemDetails(event.itemId.toString());
+        const itemDetails = await getItemDetails(event.itemId.toString());
+        // console.log('Processing item purchase:', {
+        //     itemId: event.itemId,
+        //     goldInfo: itemDetails?.gold,
+        //     totalGold: itemDetails?.gold?.total
+        // });
+        
+        if (itemDetails?.gold?.total) {
+            goldValue = itemDetails.gold.base;
+        } else {
+            // console.warn(`Missing gold info for item ${event.itemId}:`, itemDetails);
         }
     } catch (error) {
-        console.warn(`Failed to fetch details for item ${event.itemId}, proceeding without component logic:`, error);
+        console.warn(`Could not get price for item ${event.itemId}, using 0`);
     }
-
-    const timestamp = (event.timestamp / 1000);
-
-    if (itemDetails.from && itemDetails.from.length > 0) {
-        const components = [...itemDetails.from];
-        const destroyed = [];
-        for (const component of components) {
-            if (!wasItemDestroyed(event.participantId, component)) {
-                destroyed.push(component);
-            }
-        }
-        trackDestroyedItems(event.participantId, destroyed);
-    }
-
-    if (wasItemDestroyed(event.participantId, event.itemId)) return stats;
-
-    [stats, gameStats].forEach(target => {
-        initializeEconomyStats(target.playerStats || {});
-        initializeEconomyStats(target.teamStats || {});
-        initializeEconomyStats(target.enemyStats || {});
-    });
 
     if (event.participantId === playerParticipantId) {
-        updateStats(stats.playerStats, event, itemDetails, timestamp);
-        updateStats(gameStats.playerStats, event, itemDetails, timestamp);
+
+        console.log('Before updating stats:', {
+            itemId: event.itemId,
+            goldValue,
+            timestamp,
+            currentItems: stats.playerStats.economy.itemPurchases.items.length
+        });
+        // Player stats
+        stats.playerStats.economy.itemPurchases.count++;
+        stats.playerStats.economy.itemPurchases.timestamps.push(timestamp);
+        stats.playerStats.economy.itemPurchases.items.push({
+            itemId: event.itemId,
+            timestamp,
+            gold: goldValue,
+            totalGold: stats.playerStats.economy.itemGold.total + goldValue
+        });
+        stats.playerStats.economy.itemGold.total += goldValue;
+        stats.playerStats.economy.itemGold.history.count.push(goldValue);
+        stats.playerStats.economy.itemGold.history.timestamps.push(timestamp);
+
+        console.log('After updating stats:', {
+            newTotal: stats.playerStats.economy.itemGold.total,
+            itemsCount: stats.playerStats.economy.itemPurchases.items.length,
+            latestItem: stats.playerStats.economy.itemPurchases.items[
+                stats.playerStats.economy.itemPurchases.items.length - 1
+            ]
+        });
+
+        // Game stats
+        gameStats.playerStats.economy.itemPurchases.count++;
+        gameStats.playerStats.economy.itemPurchases.timestamps.push(timestamp);
+        gameStats.playerStats.economy.itemPurchases.items.push({
+            itemId: event.itemId,
+            timestamp,
+            gold: goldValue,
+            totalGold: gameStats.playerStats.economy.itemGold.total + goldValue
+        });
+        gameStats.playerStats.economy.itemGold.total += goldValue;
+        gameStats.playerStats.economy.itemGold.history.count.push(goldValue);
+        gameStats.playerStats.economy.itemGold.history.timestamps.push(timestamp);
+
     } else if (teamParticipantIds.includes(event.participantId)) {
-        updateStats(stats.teamStats, event, itemDetails, timestamp);
-        updateStats(gameStats.teamStats, event, itemDetails, timestamp);
+        // Team stats
+        stats.teamStats.economy.itemPurchases.count++;
+        stats.teamStats.economy.itemPurchases.timestamps.push(timestamp);
+        stats.teamStats.economy.itemPurchases.items.push({
+            itemId: event.itemId,
+            timestamp,
+            gold: goldValue,
+            totalGold: stats.teamStats.economy.itemGold.total + goldValue
+        });
+        stats.teamStats.economy.itemGold.total += goldValue;
+        stats.teamStats.economy.itemGold.history.count.push(goldValue);
+        stats.teamStats.economy.itemGold.history.timestamps.push(timestamp);
+
+        // Game team stats
+        gameStats.teamStats.economy.itemPurchases.count++;
+        gameStats.teamStats.economy.itemPurchases.timestamps.push(timestamp);
+        gameStats.teamStats.economy.itemPurchases.items.push({
+            itemId: event.itemId,
+            timestamp,
+            gold: goldValue,
+            totalGold: gameStats.teamStats.economy.itemGold.total + goldValue
+        });
+        gameStats.teamStats.economy.itemGold.total += goldValue;
+        gameStats.teamStats.economy.itemGold.history.count.push(goldValue);
+        gameStats.teamStats.economy.itemGold.history.timestamps.push(timestamp);
+
     } else {
-        updateStats(stats.enemyStats, event, itemDetails, timestamp);
-        updateStats(gameStats.enemyStats, event, itemDetails, timestamp);
+        // Enemy stats
+        stats.enemyStats.economy.itemPurchases.count++;
+        stats.enemyStats.economy.itemPurchases.timestamps.push(timestamp);
+        stats.enemyStats.economy.itemPurchases.items.push({
+            itemId: event.itemId,
+            timestamp,
+            gold: goldValue,
+            totalGold: stats.enemyStats.economy.itemGold.total + goldValue
+        });
+        stats.enemyStats.economy.itemGold.total += goldValue;
+        stats.enemyStats.economy.itemGold.history.count.push(goldValue);
+        stats.enemyStats.economy.itemGold.history.timestamps.push(timestamp);
+
+        // Game enemy stats
+        gameStats.enemyStats.economy.itemPurchases.count++;
+        gameStats.enemyStats.economy.itemPurchases.timestamps.push(timestamp);
+        gameStats.enemyStats.economy.itemPurchases.items.push({
+            itemId: event.itemId,
+            timestamp,
+            gold: goldValue,
+            totalGold: gameStats.enemyStats.economy.itemGold.total + goldValue
+        });
+        gameStats.enemyStats.economy.itemGold.total += goldValue;
+        gameStats.enemyStats.economy.itemGold.history.count.push(goldValue);
+        gameStats.enemyStats.economy.itemGold.history.timestamps.push(timestamp);
     }
 
     return stats;
