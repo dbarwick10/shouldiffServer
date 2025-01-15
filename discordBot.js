@@ -186,29 +186,45 @@ export class DiscordBot {
     }
 
     async generateChart(data, statType, summoner) {
+        // Debug log to see what data we're getting
+        console.log('Data in generateChart:', {
+            hasLatestGame: !!data.averageEventTimes?.latestGame,
+            statType,
+            summoner
+        });
+    
         const canvas = createCanvas(800, 400);
         const ctx = canvas.getContext('2d');
     
-        // Get the aggregate data (required)
         const playerStats = data.averageEventTimes?.playerStats;
         if (!playerStats) {
             throw new Error('No player statistics available');
         }
     
-        // Initialize datasets array
         const datasets = [];
         const categories = ['wins', 'losses', 'surrenderWins', 'surrenderLosses'];
     
-        // First, try to add latest game data if available
+        // Process latest game data first
         const latestGame = data.averageEventTimes?.latestGame;
         if (latestGame?.playerStats) {
+            console.log('Processing latest game data for:', statType);
+            
             let latestGameData;
-            if (statType === 'kda' || statType === 'itemPurchases') {
-                const rawData = latestGame.playerStats.basicStats?.[statType]?.history?.raw || [];
-                latestGameData = this.processEventData(rawData, statType);
+            if (statType === 'kda') {
+                latestGameData = this.processEventData(
+                    latestGame.playerStats.basicStats?.kda?.history?.raw || [], 
+                    'kda'
+                );
+            } else if (statType === 'itemPurchases') {
+                latestGameData = this.processEventData(
+                    latestGame.playerStats.economy?.itemGold?.history?.count || [],
+                    'itemPurchases'
+                );
             } else if (statType === 'timeSpentDead') {
-                const deathData = latestGame.playerStats.basicStats?.timeSpentDead?.totalDeathTime || [];
-                latestGameData = this.processEventData(deathData, statType);
+                latestGameData = this.processEventData(
+                    latestGame.playerStats.basicStats?.timeSpentDead?.totalDeathTime || [],
+                    'timeSpentDead'
+                );
             } else {
                 const timestamps = 
                     latestGame.playerStats.basicStats?.[statType]?.timestamps || 
@@ -216,6 +232,11 @@ export class DiscordBot {
                     [];
                 latestGameData = this.processEventData(timestamps, statType);
             }
+    
+            console.log('Latest game data processed:', {
+                hasData: !!latestGameData,
+                dataPoints: latestGameData?.length
+            });
     
             if (latestGameData?.length > 0) {
                 datasets.push({
@@ -232,7 +253,7 @@ export class DiscordBot {
             }
         }
     
-        // Then add historical average data
+        // Add historical data
         for (const category of categories) {
             if (playerStats[category]?.[statType]) {
                 const eventData = playerStats[category][statType];
@@ -240,10 +261,10 @@ export class DiscordBot {
                     const processedData = this.processEventData(eventData, statType);
                     if (processedData?.length > 0) {
                         datasets.push({
-                            label: `${this.formatCategoryLabel(category)}`,
+                            label: `Average ${this.formatCategoryLabel(category)}`,
                             data: processedData,
                             borderColor: this.categoryStyles[category].borderColor,
-                            borderWidth: 2,  // Removed borderDash
+                            borderWidth: 2,
                             fill: false,
                             tension: 0.1,
                             pointRadius: 1,
@@ -259,7 +280,11 @@ export class DiscordBot {
             throw new Error(`No data available for ${statType}`);
         }
     
-        // Create and return the chart
+        console.log('Final datasets:', datasets.map(d => ({
+            label: d.label,
+            dataPoints: d.data.length
+        })));
+    
         const chart = new Chart(ctx, {
             type: 'line',
             data: { datasets },
@@ -271,8 +296,7 @@ export class DiscordBot {
                         type: 'linear',
                         title: {
                             display: true,
-                            text: 'Time (minutes)',
-                            padding: { top: 10, bottom: 10 }
+                            text: 'Time (minutes)'
                         },
                         ticks: {
                             callback: value => Math.round(value)
@@ -282,8 +306,7 @@ export class DiscordBot {
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: this.getYAxisLabel(statType),
-                            padding: { top: 10, bottom: 10 }
+                            text: this.getYAxisLabel(statType)
                         }
                     }
                 },
@@ -303,9 +326,8 @@ export class DiscordBot {
                         display: true,
                         text: [
                             `${summoner}'s ${this.formatStatLabel(statType)}`,
-                            datasets.length > 1 ? 'Latest Game vs Historical Games' : 'Historical Games'
+                            'Latest Game vs Historical Averages'
                         ],
-                        padding: { top: 10, bottom: 20 },
                         font: { 
                             size: 16,
                             weight: 'bold'

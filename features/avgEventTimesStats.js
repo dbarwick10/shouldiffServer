@@ -1,18 +1,18 @@
 export function calculateAverageEventTimes(individualGameStats) {
+    // Debug log to see what we're starting with
+    console.log('Starting calculateAverageEventTimes with:', {
+        numberOfGames: individualGameStats?.length,
+        hasFirstGame: !!individualGameStats?.[0]
+    });
+
     const aggregatedTimestamps = {
         playerStats: initializeStats(),
         teamStats: initializeStats(),
         enemyStats: initializeStats()
     };
 
-    // Get the latest game (first game in the array)
-    const latestGame = individualGameStats[0];
-
-    // Process all games except the latest for averages
+    // Process all games for averages (including latest for now)
     individualGameStats.forEach((match, index) => {
-        // Skip if this is the latest game
-        if (index === 0) return;
-        
         const { outcome } = match.playerStats;
         const category = getOutcomeCategory(outcome.result);
 
@@ -23,25 +23,19 @@ export function calculateAverageEventTimes(individualGameStats) {
         }
     });
 
-    // Calculate averages for each category
+    // Calculate averages
     const averageEventTimes = {
         playerStats: calculateAverageForCategories(aggregatedTimestamps.playerStats),
         teamStats: calculateAverageForCategories(aggregatedTimestamps.teamStats),
         enemyStats: calculateAverageForCategories(aggregatedTimestamps.enemyStats)
     };
 
-    // Add latest game data if available
-    if (latestGame) {
-        averageEventTimes.latestGame = {
-            playerStats: latestGame.playerStats,
-            teamStats: latestGame.teamStats,
-            enemyStats: latestGame.enemyStats,
-            metadata: {
-                gameMode: latestGame.metadata?.gameMode,
-                gameDuration: latestGame.metadata?.gameDuration,
-                timestamp: latestGame.metadata?.timestamp
-            }
-        };
+    // Add latest game
+    if (individualGameStats && individualGameStats.length > 0) {
+        console.log('Adding latest game to averageEventTimes');
+        averageEventTimes.latestGame = individualGameStats[0];
+    } else {
+        console.log('No games available for latest game data');
     }
 
     return averageEventTimes;
