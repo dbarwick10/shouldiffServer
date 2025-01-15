@@ -14,13 +14,24 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-
 async function startServer() {
     try {
+        // Create a promise for server startup that must resolve first
+        const serverStartPromise = new Promise((resolve) => {
+            const server = app.listen(PORT, () => {
+                console.log(`Server successfully started on port ${PORT}`);
+                resolve(server);
+            });
+        });
 
+        // Wait for server to start before proceeding with other initializations
+        await serverStartPromise;
+
+        // Now we can proceed with other initializations
         await initializeCache();
         console.log('Item cache initialized successfully');
 
+        // Set up your middleware
         app.use(cors({
             origin: function(origin, callback) {
                 const allowedOrigins = [
@@ -57,20 +68,17 @@ async function startServer() {
         app.use(express.json());
 
         app.use((req, res, next) => {
-
             res.on('finish', () => {
                 console.log(`Memory usage after ${req.method} ${req.url}:`, getMemoryStats());
             });
-
             next();
         });
 
         // Routes
         app.use('/api', apiRoutes);
-
-        // static files
         app.use(express.static(path.join(__dirname, 'public')));
 
+        // Error handling middleware
         app.use((err, req, res, next) => {
             console.error('Server error:', err);
             res.status(err.status || 500).json({ error: err.message });
@@ -90,6 +98,7 @@ async function startServer() {
             };
         }
 
+        // Set up intervals for memory logging and cache refresh
         const MEMORY_LOG_INTERVAL = 600000;
         setInterval(() => {
             console.log('Periodic memory check:', getMemoryStats());
@@ -105,20 +114,30 @@ async function startServer() {
             }
         }, CACHE_REFRESH_INTERVAL);
 
+        // Initialize Discord bot after server is running
         const discordBot = new DiscordBot(app);
         await discordBot.start(process.env.DISCORD_BOT_TOKEN);
 
-        app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
-            console.log('Available endpoints:');
-            console.log('  - GET /api/api/stats');
-            console.log('  - GET /discordBot');
-        });
+        console.log('Server initialization complete');
+        console.log('Available endpoints:');
+        console.log('  - GET /api/api/stats');
+        console.log('  - GET /discordBot');
 
     } catch (error) {
         console.error('Failed to start server:', error);
         process.exit(1);
     }
 }
+
+// Add global error handlers
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (error) => {
+    console.error('Unhandled Rejection:', error);
+    process.exit(1);
+});
 
 startServer();
