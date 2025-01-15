@@ -20,20 +20,16 @@ export class DiscordBot {
         // Each outcome has both a border color (for the line) and a background color (for area under the line)
         this.categoryStyles = {
             wins: { 
-                borderColor: 'rgb(46, 204, 113, .75)', 
-                backgroundColor: 'rgb(46, 204, 113, 0.1)' 
+                borderColor: 'rgb(46, 204, 113, .75)' 
             },
             losses: { 
-                borderColor: 'rgb(231, 76, 60, .75)', 
-                backgroundColor: 'rgb(231, 76, 60, 0.1)' 
+                borderColor: 'rgb(231, 76, 60, .75)' 
             },
             surrenderWins: { 
-                borderColor: 'rgb(52, 152, 219, .75)', 
-                backgroundColor: 'rgb(52, 152, 219, 0.1)' 
+                borderColor: 'rgb(52, 152, 219, .75)' 
             },
             surrenderLosses: { 
-                borderColor: 'rgb(230, 126, 34, .75)', 
-                backgroundColor: 'rgb(230, 126, 34, 0.1)' 
+                borderColor: 'rgb(230, 126, 34, .75)' 
             }
         };
         
@@ -127,7 +123,7 @@ export class DiscordBot {
             const statsData = await this.fetchStatsData(summoner, tagline, gameMode);
             
             // Generate a chart from the statistics
-            const chartImage = await this.generateChart(statsData, statType);
+            const chartImage = await this.generateChart(statsData, statType, summoner);
             
             // Send the chart back to Discord
             await interaction.editReply({
@@ -189,7 +185,7 @@ export class DiscordBot {
         }
     }
 
-    async generateChart(data, statType) {
+    async generateChart(data, statType, summoner) {
         const canvas = createCanvas(800, 400);
         const ctx = canvas.getContext('2d');
 
@@ -217,7 +213,6 @@ export class DiscordBot {
                             label: this.formatCategoryLabel(category),
                             data: processedData,
                             borderColor: this.categoryStyles[category].borderColor,
-                            // backgroundColor: this.categoryStyles[category].backgroundColor,
                             tension: 0.1,
                             fill: true
                         });
@@ -281,7 +276,7 @@ export class DiscordBot {
                     },
                     title: {
                         display: true,
-                        text: `${this.formatStatLabel(statType)} Comparison Across Game Outcomes`,
+                                                    text: `${summoner}'s ${this.formatStatLabel(statType)} Over Time`,
                         padding: {
                             top: 10,
                             bottom: 20
@@ -307,6 +302,12 @@ export class DiscordBot {
     }
 
     processEventData(events, statType) {
+        // Helper function to convert timestamps to minutes properly
+        const convertToMinutes = (timestamp) => {
+            // If timestamp is already in seconds (less than 100000), just divide by 60
+            // If timestamp is in milliseconds (greater than 100000), divide by 60000
+            return timestamp > 100000 ? timestamp / 60000 : timestamp / 60;
+        };
         if (!Array.isArray(events)) {
             console.error('Invalid events data:', events);
             return [];
@@ -317,7 +318,7 @@ export class DiscordBot {
             return events
                 .filter(event => event && typeof event === 'object')
                 .map(event => ({
-                    x: event.timestamp / 60000, // Convert ms to minutes
+                    x: convertToMinutes(event.timestamp), // Convert to minutes using helper function
                     y: statType === 'kda' ? event.kdaValue : event.goldValue
                 }))
                 .sort((a, b) => a.x - b.x); // Ensure chronological order
@@ -337,7 +338,7 @@ export class DiscordBot {
         return events
             .filter(timestamp => timestamp !== null)
             .map((timestamp, index) => ({
-                x: timestamp / 60000, // Convert ms to minutes
+                x: convertToMinutes(timestamp), // Convert to minutes using helper function
                 y: index + 1 // Cumulative count
             }))
             .sort((a, b) => a.x - b.x);
