@@ -168,7 +168,7 @@ export class DiscordBot {
             content: 'This bot is only available in official partner servers.',
             ephemeral: true
         });
-    }
+    } else {console.log('Approved. Server name:', interaction.guild.name);}
 
         if (interaction.commandName !== 'stats') return;
 
