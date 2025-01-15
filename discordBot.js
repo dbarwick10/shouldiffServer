@@ -158,6 +158,18 @@ export class DiscordBot {
     }
 
     async handleCommand(interaction) {
+
+        // Array of allowed server names
+    // const allowedServers = ["Should I FF", "Your Other Server", "Another Server Name"];
+    const allowedServers = ["test server1111"];
+
+    if (!allowedServers.includes(interaction.guild.name)) {
+        return await interaction.reply({
+            content: 'This bot is only available in official partner servers.',
+            ephemeral: true
+        });
+    }
+
         if (interaction.commandName !== 'stats') return;
 
         await interaction.deferReply();
@@ -280,9 +292,9 @@ export class DiscordBot {
                     tension: 0.1,
                     pointRadius: 2,
                     pointHoverRadius: 3,
-                    segment: {
-                        borderDash: [50, 1]
-                    },
+                    // segment: {
+                    //     borderDash: [50, 1]
+                    // },
                     order: 1
                 });
             }
