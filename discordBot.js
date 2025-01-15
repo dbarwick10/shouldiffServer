@@ -281,7 +281,7 @@ export class DiscordBot {
                     pointRadius: 2,
                     pointHoverRadius: 3,
                     segment: {
-                        borderDash: [10, 15]
+                        borderDash: [50, 1]
                     },
                     order: 1
                 });
