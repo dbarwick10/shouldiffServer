@@ -186,7 +186,6 @@ export class DiscordBot {
     }
 
     async generateChart(data, statType, summoner) {
-        // Debug log to see what data we're getting
         console.log('Data in generateChart:', {
             hasLatestGame: !!data.averageEventTimes?.latestGame,
             statType,
@@ -208,23 +207,32 @@ export class DiscordBot {
         const latestGame = data.averageEventTimes?.latestGame;
         if (latestGame?.playerStats) {
             console.log('Processing latest game data for:', statType);
+    
+            // Log the structure of latest game data
+            console.log('Latest game KDA structure:', {
+                hasBasicStats: !!latestGame.playerStats.basicStats,
+                hasKDA: !!latestGame.playerStats.basicStats?.kda,
+                hasHistory: !!latestGame.playerStats.basicStats?.kda?.history,
+                historyData: latestGame.playerStats.basicStats?.kda?.history
+            });
             
             let latestGameData;
             if (statType === 'kda') {
-                latestGameData = this.processEventData(
-                    latestGame.playerStats.basicStats?.kda?.history?.raw || [], 
-                    'kda'
-                );
+                // Check if we have the proper KDA history data
+                const kdaHistory = latestGame.playerStats.basicStats?.kda?.history;
+                if (kdaHistory && Array.isArray(kdaHistory.count)) {
+                    // Create data points combining timestamps with KDA values
+                    latestGameData = kdaHistory.count.map((kdaValue, index) => ({
+                        x: kdaHistory.timestamps[index] / 60, // Convert to minutes
+                        y: kdaValue
+                    })).filter(point => point.x != null && point.y != null);
+                }
             } else if (statType === 'itemPurchases') {
-                latestGameData = this.processEventData(
-                    latestGame.playerStats.economy?.itemGold?.history?.count || [],
-                    'itemPurchases'
-                );
+                const goldHistory = latestGame.playerStats.economy?.itemGold?.history;
+                latestGameData = this.processEventData(goldHistory?.count || [], 'itemPurchases');
             } else if (statType === 'timeSpentDead') {
-                latestGameData = this.processEventData(
-                    latestGame.playerStats.basicStats?.timeSpentDead?.totalDeathTime || [],
-                    'timeSpentDead'
-                );
+                const deathData = latestGame.playerStats.basicStats?.timeSpentDead?.totalDeathTime;
+                latestGameData = this.processEventData(deathData || [], 'timeSpentDead');
             } else {
                 const timestamps = 
                     latestGame.playerStats.basicStats?.[statType]?.timestamps || 
@@ -235,7 +243,8 @@ export class DiscordBot {
     
             console.log('Latest game data processed:', {
                 hasData: !!latestGameData,
-                dataPoints: latestGameData?.length
+                dataPoints: latestGameData?.length,
+                samplePoints: latestGameData?.slice(0, 3)
             });
     
             if (latestGameData?.length > 0) {
@@ -261,7 +270,7 @@ export class DiscordBot {
                     const processedData = this.processEventData(eventData, statType);
                     if (processedData?.length > 0) {
                         datasets.push({
-                            label: `Average ${this.formatCategoryLabel(category)}`,
+                            label: `${this.formatCategoryLabel(category)}`,
                             data: processedData,
                             borderColor: this.categoryStyles[category].borderColor,
                             borderWidth: 2,
@@ -326,7 +335,7 @@ export class DiscordBot {
                         display: true,
                         text: [
                             `${summoner}'s ${this.formatStatLabel(statType)}`,
-                            'Latest Game vs Historical Averages'
+                            'Latest Game vs Historical Games'
                         ],
                         font: { 
                             size: 16,
