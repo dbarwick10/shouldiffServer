@@ -163,25 +163,44 @@ export class DiscordBot {
         const canvas = createCanvas(800, 400);
         const ctx = canvas.getContext('2d');
 
-        // Find the first available data category (wins/losses/etc)
-        const categories = ['wins', 'losses', 'surrenderWins', 'surrenderLosses'];
-        const category = categories.find(cat => 
-            data.averageEventTimes[cat]?.[statType]?.length > 0
-        );
+        // Debug log the data structure
+        console.log('Data structure received:', {
+            hasAverageEventTimes: !!data.averageEventTimes,
+            playerStats: data.averageEventTimes?.playerStats ? 
+                Object.keys(data.averageEventTimes.playerStats) : [],
+            statType
+        });
 
-        if (!category) {
-            throw new Error('No data available for chart generation');
+        // First, get the playerStats data
+        const playerStats = data.averageEventTimes?.playerStats;
+        if (!playerStats) {
+            throw new Error('No player statistics available');
         }
 
-        // Get the event data and process it
-        const events = data.averageEventTimes[category][statType];
-        const chartData = this.processEventData(events, statType);
+        // Find a category with data
+        const categories = ['wins', 'losses', 'surrenderWins', 'surrenderLosses'];
+        let selectedCategory = null;
+        let eventData = null;
 
-        console.log('Generating chart with data:', {
-            category,
-            statType,
-            chartData: chartData.slice(0, 3) // Log first 3 points for debugging
-        });
+        for (const category of categories) {
+            if (playerStats[category] && playerStats[category][statType]) {
+                console.log(`Found data in category ${category}:`, 
+                    playerStats[category][statType]
+                );
+                if (playerStats[category][statType].length > 0) {
+                    selectedCategory = category;
+                    eventData = playerStats[category][statType];
+                    break;
+                }
+            }
+        }
+
+        if (!selectedCategory || !eventData) {
+            throw new Error(`No data found for ${statType} in any game category`);
+        }
+
+        console.log('Selected category:', selectedCategory);
+        console.log('Event data sample:', eventData.slice(0, 3));
 
         // Create the chart
         const chart = new Chart(ctx, {
