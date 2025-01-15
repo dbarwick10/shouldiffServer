@@ -108,7 +108,7 @@ async function startServer() {
         const discordBot = new DiscordBot(app);
         await discordBot.start(process.env.DISCORD_BOT_TOKEN);
 
-        app.listen(PORT, '0.0.0.0', () => {
+        app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
             console.log('Available endpoints:');
             console.log('  - GET /api/api/stats');
