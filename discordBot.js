@@ -1,4 +1,5 @@
 // This module implements a Discord bot that generates statistical charts for League of Legends players
+// It handles multiple game outcomes and displays them in a comparative visualization
 import { Client, IntentsBitField, SlashCommandBuilder } from 'discord.js';
 import { createCanvas } from 'canvas';
 import { Chart } from 'chart.js/auto';
@@ -7,6 +8,7 @@ export class DiscordBot {
     constructor(app) {
         this.app = app;
         
+        // Initialize Discord client with necessary permissions
         this.client = new Client({
             intents: [
                 IntentsBitField.Flags.Guilds,
@@ -14,16 +16,39 @@ export class DiscordBot {
             ]
         });
         
+        // Define color scheme for different game outcomes
+        // Each outcome has both a border color (for the line) and a background color (for area under the line)
+        this.categoryStyles = {
+            wins: { 
+                borderColor: 'rgb(46, 204, 113, .75)', 
+                backgroundColor: 'rgb(46, 204, 113, 0.1)' 
+            },
+            losses: { 
+                borderColor: 'rgb(231, 76, 60, .75)', 
+                backgroundColor: 'rgb(231, 76, 60, 0.1)' 
+            },
+            surrenderWins: { 
+                borderColor: 'rgb(52, 152, 219, .75)', 
+                backgroundColor: 'rgb(52, 152, 219, 0.1)' 
+            },
+            surrenderLosses: { 
+                borderColor: 'rgb(230, 126, 34, .75)', 
+                backgroundColor: 'rgb(230, 126, 34, 0.1)' 
+            }
+        };
+        
         this.setupEventHandlers();
         console.log('Discord bot initialized');
     }
 
     setupEventHandlers() {
+        // Set up event handler for when the bot is ready
         this.client.once('ready', async () => {
             console.log(`Discord bot is ready! Logged in as ${this.client.user.tag}`);
             await this.registerCommands();
         });
     
+        // Handle incoming slash commands
         this.client.on('interactionCreate', async interaction => {
             if (!interaction.isCommand()) return;
             console.log(`Received command: ${interaction.commandName}`);
@@ -32,6 +57,7 @@ export class DiscordBot {
     }
 
     async registerCommands() {
+        // Define the available commands and their options
         const commands = [
             new SlashCommandBuilder()
                 .setName('stats')
@@ -85,21 +111,25 @@ export class DiscordBot {
     async handleCommand(interaction) {
         if (interaction.commandName !== 'stats') return;
 
+        // Defer the reply since chart generation might take some time
         await interaction.deferReply();
 
         try {
+            // Get all required parameters from the command
             const summoner = interaction.options.getString('summoner');
             const tagline = interaction.options.getString('tagline');
             const gameMode = interaction.options.getString('gamemode');
             const statType = interaction.options.getString('stat');
 
-            console.log('Fetching stats for:', { summoner, tagline, gameMode, statType });
+            console.log('Processing stats request for:', { summoner, tagline, gameMode, statType });
             
+            // Fetch the statistics from our API
             const statsData = await this.fetchStatsData(summoner, tagline, gameMode);
-            console.log('Received stats data:', statsData);
             
+            // Generate a chart from the statistics
             const chartImage = await this.generateChart(statsData, statType);
             
+            // Send the chart back to Discord
             await interaction.editReply({
                 files: [{
                     attachment: chartImage,
@@ -163,57 +193,47 @@ export class DiscordBot {
         const canvas = createCanvas(800, 400);
         const ctx = canvas.getContext('2d');
 
-        // Debug log the data structure
-        console.log('Data structure received:', {
-            hasAverageEventTimes: !!data.averageEventTimes,
-            playerStats: data.averageEventTimes?.playerStats ? 
-                Object.keys(data.averageEventTimes.playerStats) : [],
-            statType
-        });
-
-        // First, get the playerStats data
+        // Get the playerStats data
         const playerStats = data.averageEventTimes?.playerStats;
         if (!playerStats) {
             throw new Error('No player statistics available');
         }
 
-        // Find a category with data
+        // Process data for each category
         const categories = ['wins', 'losses', 'surrenderWins', 'surrenderLosses'];
-        let selectedCategory = null;
-        let eventData = null;
+        const datasets = [];
 
+        // Create a dataset for each category that has data
         for (const category of categories) {
             if (playerStats[category] && playerStats[category][statType]) {
-                console.log(`Found data in category ${category}:`, 
-                    playerStats[category][statType]
-                );
-                if (playerStats[category][statType].length > 0) {
-                    selectedCategory = category;
-                    eventData = playerStats[category][statType];
-                    break;
+                const eventData = playerStats[category][statType];
+                if (eventData && eventData.length > 0) {
+                    console.log(`Processing data for ${category}:`, 
+                        eventData.slice(0, 3));
+                    
+                    const processedData = this.processEventData(eventData, statType);
+                    if (processedData.length > 0) {
+                        datasets.push({
+                            label: this.formatCategoryLabel(category),
+                            data: processedData,
+                            borderColor: this.categoryStyles[category].borderColor,
+                            // backgroundColor: this.categoryStyles[category].backgroundColor,
+                            tension: 0.1,
+                            fill: true
+                        });
+                    }
                 }
             }
         }
 
-        if (!selectedCategory || !eventData) {
+        if (datasets.length === 0) {
             throw new Error(`No data found for ${statType} in any game category`);
         }
 
-        console.log('Selected category:', selectedCategory);
-        console.log('Event data sample:', eventData.slice(0, 3));
-
-        // Create the chart
+        // Create the multi-series chart
         const chart = new Chart(ctx, {
             type: 'line',
-            data: {
-                datasets: [{
-                    label: this.getChartLabel(statType),
-                    data: chartData,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1,
-                    fill: false
-                }]
-            },
+            data: { datasets },
             options: {
                 responsive: false,
                 animation: false,
@@ -222,30 +242,65 @@ export class DiscordBot {
                         type: 'linear',
                         title: {
                             display: true,
-                            text: 'Time (minutes)'
+                            text: 'Time (minutes)',
+                            padding: {
+                                top: 10,
+                                bottom: 10
+                            }
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return Math.round(value);
+                            }
                         }
                     },
                     y: {
                         type: 'linear',
                         title: {
                             display: true,
-                            text: this.getYAxisLabel(statType)
-                        }
+                            text: this.getYAxisLabel(statType),
+                            padding: {
+                                top: 10,
+                                bottom: 10
+                            }
+                        },
+                        beginAtZero: true
                     }
                 },
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top'
+                        position: 'top',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: {
+                                size: 12
+                            }
+                        }
                     },
                     title: {
                         display: true,
-                        text: `${this.formatStatLabel(statType)} Over Time (${category})`
+                        text: `${this.formatStatLabel(statType)} Comparison Across Game Outcomes`,
+                        padding: {
+                            top: 10,
+                            bottom: 20
+                        },
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        }
                     }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    intersect: false,
+                    axis: 'x'
                 }
             }
         });
 
+        // Convert the chart to a buffer and clean up
         const buffer = canvas.toBuffer('image/png');
         chart.destroy();
         return buffer;
@@ -257,14 +312,15 @@ export class DiscordBot {
             return [];
         }
 
-        // Handle complex stats (KDA and itemPurchases)
+        // Handle KDA and itemPurchases which have complex object structure
         if (statType === 'kda' || statType === 'itemPurchases') {
             return events
                 .filter(event => event && typeof event === 'object')
                 .map(event => ({
                     x: event.timestamp / 60000, // Convert ms to minutes
                     y: statType === 'kda' ? event.kdaValue : event.goldValue
-                }));
+                }))
+                .sort((a, b) => a.x - b.x); // Ensure chronological order
         }
 
         // Handle timeSpentDead specially
@@ -284,24 +340,15 @@ export class DiscordBot {
                 x: timestamp / 60000, // Convert ms to minutes
                 y: index + 1 // Cumulative count
             }))
-            .sort((a, b) => a.x - b.x); // Ensure chronological order
+            .sort((a, b) => a.x - b.x);
     }
 
-    getChartLabel(statType) {
-        const labels = {
-            kills: 'Cumulative Kills',
-            deaths: 'Cumulative Deaths',
-            assists: 'Cumulative Assists',
-            kda: 'KDA Ratio',
-            itemPurchases: 'Total Gold',
-            turrets: 'Turrets Destroyed',
-            dragons: 'Dragons Secured',
-            barons: 'Barons Secured',
-            elders: 'Elder Dragons Secured',
-            inhibitors: 'Inhibitors Destroyed',
-            timeSpentDead: 'Death Duration'
-        };
-        return labels[statType] || statType;
+    formatCategoryLabel(category) {
+        return category
+            .replace(/([A-Z])/g, ' $1')
+            .split(/[^a-zA-Z0-9]+/)
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
     }
 
     getYAxisLabel(statType) {
@@ -323,9 +370,9 @@ export class DiscordBot {
 
     formatStatLabel(statType) {
         return statType
-            .replace(/([A-Z])/g, ' $1') // Add spaces before capital letters
-            .split(/[^a-zA-Z0-9]+/) // Split on non-alphanumeric characters
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter
+            .replace(/([A-Z])/g, ' $1')
+            .split(/[^a-zA-Z0-9]+/)
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(' ');
     }
 
