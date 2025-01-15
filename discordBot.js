@@ -270,8 +270,9 @@ export class DiscordBot {
             }
 
             if (latestGameData?.length > 0) {
+                const gameResult = latestGame.playerStats.outcome.result;
                 datasets.push({
-                    label: 'Latest Game',
+                    label: `Last Game (${this.formatCategoryLabel(gameResult)})`,
                     data: latestGameData,
                     borderColor: 'rgb(149, 165, 166, .75)',
                     borderWidth: 3,
