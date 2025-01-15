@@ -111,10 +111,8 @@ async function startServer() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server running on port ${PORT}`);
             console.log('Available endpoints:');
-            console.log('  - GET /api/test');
-            console.log('  - GET /api/puuid');
-            console.log('  - GET /api/match-stats');
-            console.log('  - GET /api/match-events');
+            console.log('  - GET /api/api/stats');
+            console.log('  - GET /discordBot');
         });
 
     } catch (error) {
