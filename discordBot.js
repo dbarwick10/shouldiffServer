@@ -186,51 +186,36 @@ export class DiscordBot {
     }
 
     async generateChart(data, statType, summoner) {
+        // Debug logging to see what data we're receiving
+        console.log('Data received in generateChart:', {
+            hasData: !!data,
+            hasAverageEventTimes: !!data?.averageEventTimes,
+            playerStats: !!data?.averageEventTimes?.playerStats,
+            latestGame: !!data?.averageEventTimes?.latestGame,
+            statType,
+            summoner
+        });
+    
         const canvas = createCanvas(800, 400);
         const ctx = canvas.getContext('2d');
     
-        // Get both aggregate and latest game stats
+        // Get both aggregate data and latest game stats from our data structure
         const playerStats = data.averageEventTimes?.playerStats;
-        const latestGame = data.averageEventTimes?.latestGame;
         
-        if (!playerStats || !latestGame) {
-            throw new Error('Required statistics are missing');
-        }
-    
+        // Initialize arrays to hold our datasets
         const datasets = [];
-    
-        // Process latest game data first so it appears underneath aggregate lines
-        const latestGameData = statType === 'kda' || statType === 'itemPurchases' 
-            ? this.processEventData(latestGame.playerStats.basicStats?.[statType]?.history?.raw || [], statType)
-            : statType === 'timeSpentDead'
-            ? this.processEventData(latestGame.playerStats.basicStats?.timeSpentDead?.totalDeathTime || [], statType)
-            : this.processEventData(
-                latestGame.playerStats.basicStats?.[statType]?.timestamps || 
-                latestGame.playerStats.objectives?.[statType]?.timestamps || 
-                [],
-                statType
-            );
-    
-        // Add latest game as a thicker, more prominent line
-        const gameResult = latestGame.playerStats.outcome.result;
-        datasets.push({
-            label: 'Latest Game',
-            data: latestGameData,
-            borderColor: this.categoryStyles[gameResult].borderColor,
-            borderWidth: 3,  // Thicker line for latest game
-            fill: false,
-            tension: 0.1,
-            pointRadius: 2,
-            pointHoverRadius: 3,
-            order: 1  // Ensure latest game appears on top
-        });
-    
-        // Add aggregate data lines
         const categories = ['wins', 'losses', 'surrenderWins', 'surrenderLosses'];
+    
+        // Process historical average data first
         for (const category of categories) {
-            if (playerStats[category] && playerStats[category][statType]) {
+            if (playerStats?.[category]?.[statType]) {
                 const eventData = playerStats[category][statType];
                 if (eventData && eventData.length > 0) {
+                    console.log(`Processing ${category} data:`, {
+                        dataLength: eventData.length,
+                        sampleData: eventData.slice(0, 3)
+                    });
+                    
                     const processedData = this.processEventData(eventData, statType);
                     if (processedData.length > 0) {
                         datasets.push({
@@ -250,7 +235,61 @@ export class DiscordBot {
             }
         }
     
-        // Create the unified chart
+        // Then try to add latest game data if available
+        const latestGame = data.averageEventTimes?.latestGame;
+        if (latestGame) {
+            console.log('Processing latest game data:', {
+                hasOutcome: !!latestGame.playerStats?.outcome,
+                statType,
+                availableData: Object.keys(latestGame.playerStats || {})
+            });
+    
+            try {
+                let latestGameData;
+                if (statType === 'kda' || statType === 'itemPurchases') {
+                    const rawData = latestGame.playerStats.basicStats?.[statType]?.history?.raw || [];
+                    latestGameData = this.processEventData(rawData, statType);
+                } else if (statType === 'timeSpentDead') {
+                    const deathData = latestGame.playerStats.basicStats?.timeSpentDead?.totalDeathTime || [];
+                    latestGameData = this.processEventData(deathData, statType);
+                } else {
+                    const timestamps = 
+                        latestGame.playerStats.basicStats?.[statType]?.timestamps || 
+                        latestGame.playerStats.objectives?.[statType]?.timestamps || 
+                        [];
+                    latestGameData = this.processEventData(timestamps, statType);
+                }
+    
+                if (latestGameData && latestGameData.length > 0) {
+                    const gameResult = latestGame.playerStats.outcome?.result || 'unknown';
+                    datasets.push({
+                        label: 'Latest Game',
+                        data: latestGameData,
+                        borderColor: this.categoryStyles[gameResult]?.borderColor || 'rgb(75, 192, 192)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 2,
+                        pointHoverRadius: 3,
+                        order: 1
+                    });
+                }
+            } catch (error) {
+                console.error('Error processing latest game data:', error);
+            }
+        }
+    
+        // Proceed with chart creation if we have any data
+        if (datasets.length === 0) {
+            throw new Error(`No data available for ${statType}`);
+        }
+    
+        console.log('Creating chart with datasets:', {
+            numberOfDatasets: datasets.length,
+            datasetLabels: datasets.map(d => d.label)
+        });
+    
+        // Create the chart
         const chart = new Chart(ctx, {
             type: 'line',
             data: { datasets },
@@ -286,22 +325,25 @@ export class DiscordBot {
                             padding: 20,
                             usePointStyle: true,
                             filter: function(legendItem, data) {
-                                // Only show relevant legend items
                                 return data.datasets[legendItem.datasetIndex].data.length > 0;
+                            },
+                            font: {
+                                size: 12
                             }
                         }
                     },
                     title: {
                         display: true,
-                        text: `${summoner}'s ${this.formatStatLabel(statType)} - Latest Game vs Averages`,
+                        text: [
+                            `${summoner}'s ${this.formatStatLabel(statType)}`,
+                            'Latest Game vs Historical Averages'
+                        ],
                         padding: { top: 10, bottom: 20 },
-                        font: { size: 16, weight: 'bold' }
+                        font: { 
+                            size: 16,
+                            weight: 'bold'
+                        }
                     }
-                },
-                interaction: {
-                    mode: 'nearest',
-                    intersect: false,
-                    axis: 'x'
                 }
             }
         });
