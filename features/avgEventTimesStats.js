@@ -19,7 +19,14 @@ export function calculateAverageEventTimes(individualGameStats) {
         }
     });
 
-    // console.log('After processing all matches, aggregatedTimestamps:', aggregatedTimestamps);
+    // console.log('Aggregated Economy Data:', {
+    //     playerStats: {
+    //         wins: {
+    //             itemPurchases: aggregatedTimestamps.playerStats.wins.itemPurchases[0],
+    //             samplePoints: aggregatedTimestamps.playerStats.wins.itemPurchases[0]
+    //         },
+    //     }
+    // });
 
     // Calculate averages for each category
     const averageEventTimes = {
@@ -28,6 +35,11 @@ export function calculateAverageEventTimes(individualGameStats) {
         enemyStats: calculateAverageForCategories(aggregatedTimestamps.enemyStats)
     };
 
+    // console.log('Averaged Economy Data:', {
+    //     playerStats: {
+    //         wins: averageEventTimes.playerStats.wins.itemPurchases[0],
+    //     }
+    // });
     // console.log('Final averageEventTimes:', averageEventTimes);
     return averageEventTimes;
 }
@@ -59,7 +71,7 @@ function initializeAggregatedStats() {
         hordeKills: [],
         dragons: [],
         elders: [],
-        itemGold: [],
+        itemPurchases: [],
         timeSpentDead: []
     };
 }
@@ -86,6 +98,17 @@ function aggregatePlayerStats(aggregatedStats, stats) {
         return;
     }
 
+    // console.log('Processing stats with economy data:', {
+    //     hasEconomy: !!stats.economy,
+    //     total: stats.economy?.itemGold?.history?.count,
+    //     timestamps: stats.economy?.itemGold?.history?.timestamps
+    // });
+
+    // console.log('Processing stats with kda data:', {
+    //     count: stats.basicStat?.kda?.history?.count,
+    //     timestamps: stats.basicStats?.kda?.history?.timestamps
+    // });
+
     aggregateTimestamps(aggregatedStats.kills, stats.basicStats?.kills?.timestamps || []);
     aggregateTimestamps(aggregatedStats.deaths, stats.basicStats?.deaths?.timestamps || []);
     aggregateTimestamps(aggregatedStats.timeSpentDead, stats.basicStats?.deaths?.totalDeathTime);
@@ -104,7 +127,7 @@ function aggregatePlayerStats(aggregatedStats, stats) {
     aggregateTimestamps(aggregatedStats.dragons, stats.objectives?.dragons?.timestamps || []);
     aggregateTimestamps(aggregatedStats.elders, stats.objectives?.elders?.timestamps || []);
 
-    aggregateGoldTimestamps(aggregatedStats.itemGold, stats.economy?.itemPurchases?.items);
+    aggregateGoldTimestamps(aggregatedStats.itemPurchases, stats.economy?.itemGold?.history?.count, stats.economy?.itemGold?.history?.timestamps);
 
     if (stats.basicStats?.kda?.history?.count && stats.basicStats.kda.history.timestamps) {
         aggregateKDATimestamps(aggregatedStats.kda, stats.basicStats.kda.history.count, stats.basicStats.kda.history.timestamps);
@@ -168,90 +191,6 @@ function aggregateKDATimestamps(aggregatedArray, kdaValues, timestamps) {
     });
 }
 
-function aggregateGoldTimestamps(aggregatedArray, items) {
-    if (!Array.isArray(items)) {
-        console.error('Invalid items data:', items);
-        return;
-    }
-
-    items.forEach((item, index) => {
-        const gold = item?.gold;
-        const timestamp = item?.timestamp;
-
-        if (
-            gold === undefined ||
-            timestamp === undefined ||
-            isNaN(gold) ||
-            isNaN(timestamp)
-        ) {
-            return;
-        }
-
-        if (!aggregatedArray[index]) {
-            aggregatedArray[index] = [];
-        }
-
-        aggregatedArray[index].push({
-            gold: gold,
-            timestamp: timestamp
-        });
-    });
-}
-
-
-function aggregateItemGold(aggregatedArray, amounts, timestamps) {
-    if (!Array.isArray(amounts) || !Array.isArray(timestamps)) {
-        console.warn('Invalid input: amounts or timestamps is not an array');
-        
-        return aggregatedArray || [];
-    }
-
-    if (amounts.length === 0 || timestamps.length === 0) {
-        console.warn('Amounts or timestamps array is empty');
-        return aggregatedArray || [];
-    }
-
-    aggregatedArray = Array.isArray(aggregatedArray) ? aggregatedArray : [];
-
-    while (aggregatedArray.length < timestamps.length) {
-        aggregatedArray.push([]);
-    }
-
-    for (let index = 0; index < timestamps.length; index++) {
-        const timestamp = Number(timestamps[index]);
-        const amount = Number(amounts[index]);
-
-        console.log(`Processing index ${index}:`, {
-            timestamp,
-            amount,
-            timestampType: typeof timestamps[index],
-            amountType: typeof amounts[index]
-        });
-
-        if (
-            isNaN(timestamp) || 
-            isNaN(amount) ||
-            timestamp === undefined || 
-            amount === undefined ||
-            timestamp === null || 
-            amount === null
-        ) {
-            continue;
-        }
-
-        if (!aggregatedArray[index]) {
-            aggregatedArray[index] = [];
-        }
-
-        aggregatedArray[index].push({
-            timestamp: timestamp,
-            amount: amount
-        });
-    }
-
-    return aggregatedArray;
-}
-
 function calculateAverageForCategories(categories) {
     return {
         wins: calculateAverageTimesForStats(categories.wins),
@@ -280,7 +219,7 @@ function calculateAverageTimesForStats(aggregatedStats) {
         dragons: calculateAverageTimes(aggregatedStats.dragons),
         elders: calculateAverageTimes(aggregatedStats.elders),
         timeSpentDead: calculateAverageTimes(aggregatedStats.timeSpentDead),
-        itemGold: calculateAverageItemGold(aggregatedStats.itemGold)
+        itemPurchases: calculateAverageGoldTimes(aggregatedStats.itemPurchases)
     };
 }
 
@@ -305,17 +244,54 @@ function calculateAverageKDATimes(aggregatedArray) {
     });
 }
 
-function calculateAverageItemGold(itemGoldData) {
-    return itemGoldData.map(subArray => {
-        if (!subArray || subArray.length === 0) return null;
+function aggregateGoldTimestamps(aggregatedArray, goldValues, timestamps) {
+    if (!Array.isArray(goldValues) || !Array.isArray(timestamps)) {
+        // console.log('Invalid gold data:', { goldValues, timestamps });
+        return;
+    }
+
+    let runningTotal = 0;
+    // console.log('Processing gold data:', {
+    //     goldValuesLength: goldValues.length,
+    //     timestampsLength: timestamps.length
+    // });
+
+    timestamps.forEach((timestamp, index) => {
+        if (timestamp === undefined || 
+            timestamp === null || 
+            goldValues[index] === undefined || 
+            goldValues[index] === null) {
+            // console.log('Skipping invalid data point at index:', index);
+            return;
+        }
+
+        runningTotal += goldValues[index];
         
-        const totalAmount = subArray.reduce((sum, item) => sum + item.amount, 0);
-        const averageAmount = totalAmount / subArray.length;
-        const averageTimestamp = subArray.reduce((sum, item) => sum + item.timestamp, 0) / subArray.length;
+        if (!aggregatedArray[index]) {
+            aggregatedArray[index] = [];
+        }
+        
+        aggregatedArray[index].push({
+            timestamp: timestamp,
+            goldValue: runningTotal
+        });
+    });
+
+    // console.log('Processed gold data:', {
+    //     samplePoint: aggregatedArray[0]?.[0],
+    //     totalPoints: aggregatedArray.reduce((sum, arr) => sum + (arr?.length || 0), 0)
+    // });
+}
+
+function calculateAverageGoldTimes(aggregatedArray) {
+    return aggregatedArray.map(subArray => {
+        const totalEntries = subArray.length;
+        const totalTimestamp = subArray.reduce((sum, {timestamp}) => sum + timestamp, 0);
+        const totalGoldValue = subArray.reduce((sum, {goldValue}) => sum + goldValue, 0);
         
         return {
-            timestamp: averageTimestamp,
-            averageAmount: averageAmount
+            timestamp: totalTimestamp / totalEntries,
+            goldValue: totalGoldValue / totalEntries
         };
     });
 }

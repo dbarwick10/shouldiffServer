@@ -1,19 +1,25 @@
 const cache = {
     versions: [],
-    items: new Map(), // Use Map for better performance with frequent lookups
+    items: new Map(),
     lastFetch: null,
-    ttl: 1000 * 60 * 60 // 1 hour cache
+    itemDetails: new Map(), // New cache specifically for processed item details
+    ttl: 1000 * 60 * 60 * 24 // 24 hour cache
 };
 
-// Clear the cache when the server starts
-export function clearCacheOnStart() {
-    cache.versions = [];
-    cache.items.clear();
-    cache.lastFetch = null;
+// Initialize cache at start
+export async function initializeCache() {
+    if (cache.versions.length === 0 || isStale()) {
+        await getVersions();
+        await getItemsAndPrices();
+    }
+}
+
+function isStale() {
+    return !cache.lastFetch || (Date.now() - cache.lastFetch) > cache.ttl;
 }
 
 async function getVersions() {
-    if (cache.versions.length > 0) {
+    if (cache.versions.length > 0 && !isStale()) {
         return cache.versions;
     }
 
@@ -34,6 +40,7 @@ async function getVersions() {
 
 async function fetchItemData(version) {
     if (!cache.items.has(version)) {
+        console.log(`Fetching item data for version ${version}`);
         const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/item.json`);
         const itemData = await response.json();
         cache.items.set(version, itemData.data);
@@ -41,34 +48,46 @@ async function fetchItemData(version) {
     return cache.items.get(version);
 }
 
-export async function getItemsAndPrices() {
-    const versions = await getVersions();
+async function getItemsAndPrices() {
+    if (cache.items.size > 0 && !isStale()) {
+        return cache.items;
+    }
 
+    const versions = await getVersions();
     for (const version of versions) {
         await fetchItemData(version);
     }
-
     return cache.items;
 }
 
 export async function getItemDetails(itemId) {
     try {
         const itemsCache = await getItemsAndPrices();
+        // console.log('Cache state when getting item details:', {
+        //     itemId,
+        //     cacheSize: itemsCache.size,
+        //     versions: Array.from(itemsCache.keys())
+        // });
 
         for (const [version, items] of itemsCache) {
             if (items[itemId]) {
                 const item = items[itemId];
+                // console.log(`Found item ${itemId} in version ${version}:`, {
+                //     name: item.name,
+                //     goldInfo: item.gold
+                // });
                 return {
                     id: itemId,
                     name: item.name,
-                    gold: item.gold,
+                    gold: item.gold, // This contains {base, purchasable, total, sell}
                     description: item.description,
                     stats: item.stats,
                 };
             }
         }
 
-        throw new Error(`Item ${itemId} not found in the last 3 versions`);
+        console.warn(`Item ${itemId} not found in any version`);
+        return null;
     } catch (error) {
         console.error('Error in getItemDetails:', error);
         throw error;
@@ -78,6 +97,7 @@ export async function getItemDetails(itemId) {
 export function clearCache() {
     cache.versions = [];
     cache.items.clear();
+    cache.itemDetails.clear();
     cache.lastFetch = null;
 }
 
@@ -86,10 +106,8 @@ export function getCacheStats() {
         currentVersions: cache.versions,
         lastFetched: cache.lastFetch,
         cachedItemsCount: cache.items.size,
-        cachedItems: Array.from(cache.items.keys())
+        cachedItemDetailsCount: cache.itemDetails.size,
+        cachedItems: Array.from(cache.items.keys()),
+        isStale: isStale()
     };
-}
-
-export function resetDestroyedItemsTracking() {
-    destroyedItems.clear();
 }
