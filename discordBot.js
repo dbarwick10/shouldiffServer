@@ -295,7 +295,7 @@ export class DiscordBot {
                     // segment: {
                     //     borderDash: [50, 1]
                     // },
-                    order: 1
+                    order: 2
                 });
             }
         }
@@ -316,7 +316,7 @@ export class DiscordBot {
                             tension: 0.1,
                             pointRadius: 1,
                             pointHoverRadius: 2,
-                            order: 2
+                            order: 1
                         });
                     }
                 }
