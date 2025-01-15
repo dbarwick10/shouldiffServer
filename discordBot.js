@@ -9,15 +9,15 @@ export class DiscordBot {
         
         this.client = new Client({
             intents: [
-                IntentsBitField.Flags.Guilds,
-                IntentsBitField.Flags.GuildMessages,
-                IntentsBitField.Flags.MessageContent
+                IntentsBitField.Flags.Guilds,            // Basic server interaction
+                IntentsBitField.Flags.GuildMessages      // Message handling
+                // Removed MessageContent since we don't need it for slash commands
             ]
         });
         
         this.setupEventHandlers();
         console.log('Discord bot initialized');
-    }
+    }1
 
     setupEventHandlers() {
         this.client.once('ready', async () => {
