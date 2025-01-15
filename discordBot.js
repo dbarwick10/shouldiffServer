@@ -218,11 +218,10 @@ export class DiscordBot {
             }
     
             if (latestGameData?.length > 0) {
-                const gameResult = latestGame.playerStats.outcome?.result || 'wins';
                 datasets.push({
                     label: 'Latest Game',
                     data: latestGameData,
-                    borderColor: this.categoryStyles[gameResult].borderColor,
+                    borderColor: 'rgb(149, 165, 166, .75)',
                     borderWidth: 3,
                     fill: false,
                     tension: 0.1,
@@ -241,7 +240,7 @@ export class DiscordBot {
                     const processedData = this.processEventData(eventData, statType);
                     if (processedData?.length > 0) {
                         datasets.push({
-                            label: `Average ${this.formatCategoryLabel(category)}`,
+                            label: `${this.formatCategoryLabel(category)}`,
                             data: processedData,
                             borderColor: this.categoryStyles[category].borderColor,
                             borderWidth: 2,  // Removed borderDash
@@ -304,7 +303,7 @@ export class DiscordBot {
                         display: true,
                         text: [
                             `${summoner}'s ${this.formatStatLabel(statType)}`,
-                            datasets.length > 1 ? 'Latest Game vs Historical Averages' : 'Historical Averages'
+                            datasets.length > 1 ? 'Latest Game vs Historical Games' : 'Historical Games'
                         ],
                         padding: { top: 10, bottom: 20 },
                         font: { 
