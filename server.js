@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import 'dotenv/config';
 import apiRoutes from './api/routes.js';
+import { DiscordBot } from './discordBot.js';
 import { initializeCache } from './features/getItemsAndPrices.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -103,6 +104,9 @@ async function startServer() {
                 console.error('Failed to refresh item cache:', error);
             }
         }, CACHE_REFRESH_INTERVAL);
+
+        const discordBot = new DiscordBot(app);
+        await discordBot.start(process.env.DISCORD_BOT_TOKEN);
 
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server running on port ${PORT}`);
