@@ -188,44 +188,69 @@ export class DiscordBot {
     async generateChart(data, statType, summoner) {
         const canvas = createCanvas(800, 400);
         const ctx = canvas.getContext('2d');
-
-        // Get the playerStats data
+    
+        // Get both aggregate and latest game stats
         const playerStats = data.averageEventTimes?.playerStats;
-        if (!playerStats) {
-            throw new Error('No player statistics available');
+        const latestGame = data.averageEventTimes?.latestGame;
+        
+        if (!playerStats || !latestGame) {
+            throw new Error('Required statistics are missing');
         }
-
-        // Process data for each category
-        const categories = ['wins', 'losses', 'surrenderWins', 'surrenderLosses'];
+    
         const datasets = [];
-
-        // Create a dataset for each category that has data
+    
+        // Process latest game data first so it appears underneath aggregate lines
+        const latestGameData = statType === 'kda' || statType === 'itemPurchases' 
+            ? this.processEventData(latestGame.playerStats.basicStats?.[statType]?.history?.raw || [], statType)
+            : statType === 'timeSpentDead'
+            ? this.processEventData(latestGame.playerStats.basicStats?.timeSpentDead?.totalDeathTime || [], statType)
+            : this.processEventData(
+                latestGame.playerStats.basicStats?.[statType]?.timestamps || 
+                latestGame.playerStats.objectives?.[statType]?.timestamps || 
+                [],
+                statType
+            );
+    
+        // Add latest game as a thicker, more prominent line
+        const gameResult = latestGame.playerStats.outcome.result;
+        datasets.push({
+            label: 'Latest Game',
+            data: latestGameData,
+            borderColor: this.categoryStyles[gameResult].borderColor,
+            borderWidth: 3,  // Thicker line for latest game
+            fill: false,
+            tension: 0.1,
+            pointRadius: 2,
+            pointHoverRadius: 3,
+            order: 1  // Ensure latest game appears on top
+        });
+    
+        // Add aggregate data lines
+        const categories = ['wins', 'losses', 'surrenderWins', 'surrenderLosses'];
         for (const category of categories) {
             if (playerStats[category] && playerStats[category][statType]) {
                 const eventData = playerStats[category][statType];
                 if (eventData && eventData.length > 0) {
-                    console.log(`Processing data for ${category}:`, 
-                        eventData.slice(0, 3));
-                    
                     const processedData = this.processEventData(eventData, statType);
                     if (processedData.length > 0) {
                         datasets.push({
-                            label: this.formatCategoryLabel(category),
+                            label: `Average ${this.formatCategoryLabel(category)}`,
                             data: processedData,
                             borderColor: this.categoryStyles[category].borderColor,
+                            borderDash: [5, 5],  // Dashed lines for averages
+                            borderWidth: 2,
+                            fill: false,
                             tension: 0.1,
-                            fill: true
+                            pointRadius: 1,
+                            pointHoverRadius: 2,
+                            order: 2  // Averages appear behind latest game
                         });
                     }
                 }
             }
         }
-
-        if (datasets.length === 0) {
-            throw new Error(`No data found for ${statType} in any game category`);
-        }
-
-        // Create the multi-series chart
+    
+        // Create the unified chart
         const chart = new Chart(ctx, {
             type: 'line',
             data: { datasets },
@@ -238,28 +263,19 @@ export class DiscordBot {
                         title: {
                             display: true,
                             text: 'Time (minutes)',
-                            padding: {
-                                top: 10,
-                                bottom: 10
-                            }
+                            padding: { top: 10, bottom: 10 }
                         },
                         ticks: {
-                            callback: function(value) {
-                                return Math.round(value);
-                            }
+                            callback: value => Math.round(value)
                         }
                     },
                     y: {
-                        type: 'linear',
+                        beginAtZero: true,
                         title: {
                             display: true,
                             text: this.getYAxisLabel(statType),
-                            padding: {
-                                top: 10,
-                                bottom: 10
-                            }
-                        },
-                        beginAtZero: true
+                            padding: { top: 10, bottom: 10 }
+                        }
                     }
                 },
                 plugins: {
@@ -269,22 +285,17 @@ export class DiscordBot {
                         labels: {
                             padding: 20,
                             usePointStyle: true,
-                            font: {
-                                size: 12
+                            filter: function(legendItem, data) {
+                                // Only show relevant legend items
+                                return data.datasets[legendItem.datasetIndex].data.length > 0;
                             }
                         }
                     },
                     title: {
                         display: true,
-                                                    text: `${summoner}'s ${this.formatStatLabel(statType)} Over Time`,
-                        padding: {
-                            top: 10,
-                            bottom: 20
-                        },
-                        font: {
-                            size: 16,
-                            weight: 'bold'
-                        }
+                        text: `${summoner}'s ${this.formatStatLabel(statType)} - Latest Game vs Averages`,
+                        padding: { top: 10, bottom: 20 },
+                        font: { size: 16, weight: 'bold' }
                     }
                 },
                 interaction: {
@@ -294,8 +305,7 @@ export class DiscordBot {
                 }
             }
         });
-
-        // Convert the chart to a buffer and clean up
+    
         const buffer = canvas.toBuffer('image/png');
         chart.destroy();
         return buffer;

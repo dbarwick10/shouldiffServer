@@ -1,6 +1,4 @@
-export function calculateAverageEventTimes(individualGameStats) {
-    // console.log('Starting calculateAverageEventTimes with data:', individualGameStats);
-    
+export function calculateAverageEventTimes(individualGameStats, latestGameStats) {
     const aggregatedTimestamps = {
         playerStats: initializeStats(),
         teamStats: initializeStats(),
@@ -8,7 +6,6 @@ export function calculateAverageEventTimes(individualGameStats) {
     };
 
     individualGameStats.forEach((match, index) => {
-        // Aggregate stats based on match outcome
         const { outcome } = match.playerStats;
         const category = getOutcomeCategory(outcome.result);
 
@@ -19,28 +16,13 @@ export function calculateAverageEventTimes(individualGameStats) {
         }
     });
 
-    // console.log('Aggregated Economy Data:', {
-    //     playerStats: {
-    //         wins: {
-    //             itemPurchases: aggregatedTimestamps.playerStats.wins.itemPurchases[0],
-    //             samplePoints: aggregatedTimestamps.playerStats.wins.itemPurchases[0]
-    //         },
-    //     }
-    // });
-
-    // Calculate averages for each category
     const averageEventTimes = {
         playerStats: calculateAverageForCategories(aggregatedTimestamps.playerStats),
         teamStats: calculateAverageForCategories(aggregatedTimestamps.teamStats),
-        enemyStats: calculateAverageForCategories(aggregatedTimestamps.enemyStats)
+        enemyStats: calculateAverageForCategories(aggregatedTimestamps.enemyStats),
+        latestGame: latestGameStats
     };
 
-    // console.log('Averaged Economy Data:', {
-    //     playerStats: {
-    //         wins: averageEventTimes.playerStats.wins.itemPurchases[0],
-    //     }
-    // });
-    // console.log('Final averageEventTimes:', averageEventTimes);
     return averageEventTimes;
 }
 

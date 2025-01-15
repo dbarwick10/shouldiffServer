@@ -83,8 +83,8 @@ export async function analyzePlayerStats(matchStats, puuid, gameResultMatches) {
         }
 
         const gameResults = await gameResult(gameResultMatches, puuid);
-
         const matchTimelines = await analyzeMatchTimelineForSummoner({ matches }, puuid);
+        
         if (!Array.isArray(matchTimelines)) {
             console.error('Invalid matchTimelines structure:', matchTimelines);
             return null;
@@ -97,12 +97,19 @@ export async function analyzePlayerStats(matchStats, puuid, gameResultMatches) {
             enemyStats: initializeStats(matchId)
         };
 
-
+        // Initialize structure for the latest game
+        const latestGameStats = {
+            playerStats: initializeStats(matchId),
+            teamStats: initializeStats(matchId),
+            enemyStats: initializeStats(matchId),
+            metadata: null  // We'll store game metadata here
+        };
 
         const individualGameStats = [];
 
-        for (const match of matchTimelines) {
+        for (let i = 0; i < matchTimelines.length; i++) {
             destroyedItems.clear();
+            const match = matchTimelines[i];
             const { matchId, allEvents, metadata, frames } = match;
 
             const matchStatsMatch = matches.find(m => m.metadata.matchId === matchId);
@@ -127,7 +134,7 @@ export async function analyzePlayerStats(matchStats, puuid, gameResultMatches) {
             const isWin = gameResults.results.wins.some(game => game.matchId === matchId);
             const isSurrender = gameResults.results.surrenderWins.some(game => game.matchId === matchId) ||
                               gameResults.results.surrenderLosses.some(game => game.matchId === matchId);
-            const gameMode = gameResultMatches.find(m => m.metadata.matchId === matchId)?.info?.gameMode;
+            const gameMode = gameResultMatch?.info?.gameMode;
 
             gameStats.playerStats.outcome.result = isWin 
                 ? (isSurrender ? 'surrenderWin' : 'win')
@@ -148,25 +155,31 @@ export async function analyzePlayerStats(matchStats, puuid, gameResultMatches) {
 
             const teamParticipantIds = playerParticipantId <= 5 ? [1, 2, 3, 4, 5] : [6, 7, 8, 9, 10];
 
-            await processMatchEvents(allEvents, playerParticipantId, teamParticipantIds, aggregateStats, gameStats, matchId, matchStats, frames, gameResultMatches);
+            await processMatchEvents(allEvents, playerParticipantId, teamParticipantIds, 
+                                  aggregateStats, gameStats, matchId, matchStats, frames, gameResultMatches);
 
             individualGameStats.push(gameStats);
 
-            // console.log('After processing match:', !!individualGameStats[individualGameStats.length - 1]?.playerStats?.economy);
-
-            // match.allEvents = null;
-            // match.frames = null;
-
-            // if (global.gc) {
-            //     try {
-            //         global.gc();
-            //     } catch (e) {}
-            // }
+            // If this is the first game (index 0), store it in latestGameStats
+            if (i === 0) {
+                latestGameStats.playerStats = JSON.parse(JSON.stringify(gameStats.playerStats));
+                latestGameStats.teamStats = JSON.parse(JSON.stringify(gameStats.teamStats));
+                latestGameStats.enemyStats = JSON.parse(JSON.stringify(gameStats.enemyStats));
+                latestGameStats.metadata = {
+                    matchId,
+                    gameMode,
+                    timestamp: matchStatsMatch.info.gameCreation,
+                    gameDuration: matchStatsMatch.info.gameDuration,
+                    participantId: playerParticipantId,
+                    teamId: playerParticipantId <= 5 ? 100 : 200
+                };
+            }
         }
 
         return { 
             aggregateStats,
-            individualGameStats
+            individualGameStats,
+            latestGameStats  // Add the latest game stats to the return object
         };
 
     } catch (error) {
