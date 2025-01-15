@@ -5,38 +5,31 @@ import { Chart } from 'chart.js/auto';
 
 export class DiscordBot {
     constructor(app) {
-        // Store the Express app to access your existing API routes
         this.app = app;
         
-        // Initialize Discord client with necessary permissions
         this.client = new Client({
             intents: [
                 IntentsBitField.Flags.Guilds,
-                IntentsBitField.Flags.GuildMessages
+                IntentsBitField.Flags.GuildMessages,
+                IntentsBitField.Flags.MessageContent
             ]
         });
         
-        // Set up event handlers when bot is created
         this.setupEventHandlers();
         console.log('Discord bot initialized');
     }
 
     setupEventHandlers() {
-        // Handle bot startup
-        this.client.once('ready', () => {
+        this.client.once('ready', async () => {
             console.log(`Discord bot is ready! Logged in as ${this.client.user.tag}`);
-            this.registerCommands();
+            // Call registerCommands when bot is ready
+            await this.registerCommands();
         });
-
-        // Handle incoming commands
+    
         this.client.on('interactionCreate', async interaction => {
             if (!interaction.isCommand()) return;
+            console.log(`Received command: ${interaction.commandName}`);
             await this.handleCommand(interaction);
-        });
-
-        // Error handling
-        this.client.on('error', error => {
-            console.error('Discord client error:', error);
         });
     }
 
@@ -237,8 +230,19 @@ export class DiscordBot {
         return labels[statType] || 'Value';
     }
 
-    start(token) {
-        return this.client.login(token);
+    async start(token) {
+        if (!token) {
+            console.error('No Discord bot token provided!');
+            throw new Error('Discord bot token is required');
+        }
+        
+        try {
+            await this.client.login(token);
+            console.log('Discord bot successfully logged in');
+        } catch (error) {
+            console.error('Failed to start Discord bot:', error);
+            throw error;
+        }
     }
 
     shutdown() {
