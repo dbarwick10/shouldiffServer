@@ -17,7 +17,7 @@ export class DiscordBot {
         
         this.setupEventHandlers();
         console.log('Discord bot initialized');
-    }1
+    }
 
     setupEventHandlers() {
         this.client.once('ready', async () => {
