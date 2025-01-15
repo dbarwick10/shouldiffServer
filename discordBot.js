@@ -1,5 +1,4 @@
 // This module implements a Discord bot that generates statistical charts for League of Legends players
-// It handles multiple game outcomes and displays them in a comparative visualization
 import { Client, IntentsBitField, SlashCommandBuilder } from 'discord.js';
 import { createCanvas } from 'canvas';
 import { Chart } from 'chart.js/auto';
@@ -17,7 +16,6 @@ export class DiscordBot {
         });
         
         // Define color scheme for different game outcomes
-        // Each outcome has both a border color (for the line) and a background color (for area under the line)
         this.categoryStyles = {
             wins: { 
                 borderColor: 'rgb(46, 204, 113, .75)' 
@@ -32,28 +30,83 @@ export class DiscordBot {
                 borderColor: 'rgb(230, 126, 34, .75)' 
             }
         };
-        
+
+        // Add reconnection settings
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 10;
+        this.reconnectTimeout = 5000; // 5 seconds
+
         this.setupEventHandlers();
         console.log('Discord bot initialized');
     }
 
     setupEventHandlers() {
-        // Set up event handler for when the bot is ready
+        // Ready event
         this.client.once('ready', async () => {
             console.log(`Discord bot is ready! Logged in as ${this.client.user.tag}`);
+            this.reconnectAttempts = 0;
             await this.registerCommands();
         });
     
-        // Handle incoming slash commands
+        // Handle commands
         this.client.on('interactionCreate', async interaction => {
             if (!interaction.isCommand()) return;
             console.log(`Received command: ${interaction.commandName}`);
             await this.handleCommand(interaction);
         });
+
+        // Disconnect handler
+        this.client.on('disconnect', async (event) => {
+            console.log('Bot disconnected from Discord:', event);
+            await this.handleDisconnect();
+        });
+
+        // Error handler
+        this.client.on('error', async (error) => {
+            console.error('Discord client error:', error);
+            await this.handleDisconnect();
+        });
+
+        // Debug and warning logging
+        this.client.on('debug', (info) => console.log('Discord Debug:', info));
+        this.client.on('warn', (info) => console.warn('Discord Warning:', info));
+
+        // Reconnection handlers
+        this.client.on('reconnecting', () => {
+            console.log('Bot is attempting to reconnect...');
+        });
+
+        this.client.on('resumed', (replayed) => {
+            console.log(`Bot connection resumed. ${replayed} events replayed.`);
+            this.reconnectAttempts = 0;
+        });
+    }
+
+    async handleDisconnect() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.error('Max reconnection attempts reached. Please check the bot\'s token and connection.');
+            return;
+        }
+
+        this.reconnectAttempts++;
+        const delay = this.reconnectTimeout * Math.pow(2, this.reconnectAttempts - 1);
+        
+        console.log(`Attempting to reconnect in ${delay/1000} seconds... (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+        
+        setTimeout(async () => {
+            try {
+                if (!this.client.isReady()) {
+                    await this.client.login(process.env.DISCORD_BOT_TOKEN);
+                    console.log('Reconnection successful!');
+                }
+            } catch (error) {
+                console.error('Reconnection attempt failed:', error);
+                await this.handleDisconnect();
+            }
+        }, delay);
     }
 
     async registerCommands() {
-        // Define the available commands and their options
         const commands = [
             new SlashCommandBuilder()
                 .setName('stats')
@@ -107,11 +160,9 @@ export class DiscordBot {
     async handleCommand(interaction) {
         if (interaction.commandName !== 'stats') return;
 
-        // Defer the reply since chart generation might take some time
         await interaction.deferReply();
 
         try {
-            // Get all required parameters from the command
             const summoner = interaction.options.getString('summoner');
             const tagline = interaction.options.getString('tagline');
             const gameMode = interaction.options.getString('gamemode');
@@ -119,13 +170,9 @@ export class DiscordBot {
 
             console.log('Processing stats request for:', { summoner, tagline, gameMode, statType });
             
-            // Fetch the statistics from our API
             const statsData = await this.fetchStatsData(summoner, tagline, gameMode);
-            
-            // Generate a chart from the statistics
             const chartImage = await this.generateChart(statsData, statType, summoner);
             
-            // Send the chart back to Discord
             await interaction.editReply({
                 files: [{
                     attachment: chartImage,
@@ -173,7 +220,6 @@ export class DiscordBot {
             }
 
             const data = await response.json();
-            
             if (!data.averageEventTimes) {
                 throw new Error('Invalid data received from API. Required statistics are missing.');
             }
@@ -186,44 +232,26 @@ export class DiscordBot {
     }
 
     async generateChart(data, statType, summoner) {
-        console.log('Data in generateChart:', {
-            hasLatestGame: !!data.averageEventTimes?.latestGame,
-            statType,
-            summoner
-        });
-    
         const canvas = createCanvas(800, 400);
         const ctx = canvas.getContext('2d');
-    
+
         const playerStats = data.averageEventTimes?.playerStats;
         if (!playerStats) {
             throw new Error('No player statistics available');
         }
-    
+
         const datasets = [];
         const categories = ['wins', 'losses', 'surrenderWins', 'surrenderLosses'];
-    
+
         // Process latest game data first
         const latestGame = data.averageEventTimes?.latestGame;
         if (latestGame?.playerStats) {
-            console.log('Processing latest game data for:', statType);
-    
-            // Log the structure of latest game data
-            console.log('Latest game KDA structure:', {
-                hasBasicStats: !!latestGame.playerStats.basicStats,
-                hasKDA: !!latestGame.playerStats.basicStats?.kda,
-                hasHistory: !!latestGame.playerStats.basicStats?.kda?.history,
-                historyData: latestGame.playerStats.basicStats?.kda?.history
-            });
-            
             let latestGameData;
             if (statType === 'kda') {
-                // Check if we have the proper KDA history data
                 const kdaHistory = latestGame.playerStats.basicStats?.kda?.history;
                 if (kdaHistory && Array.isArray(kdaHistory.count)) {
-                    // Create data points combining timestamps with KDA values
                     latestGameData = kdaHistory.count.map((kdaValue, index) => ({
-                        x: kdaHistory.timestamps[index] / 60, // Convert to minutes
+                        x: kdaHistory.timestamps[index] / 60,
                         y: kdaValue
                     })).filter(point => point.x != null && point.y != null);
                 }
@@ -240,13 +268,7 @@ export class DiscordBot {
                     [];
                 latestGameData = this.processEventData(timestamps, statType);
             }
-    
-            console.log('Latest game data processed:', {
-                hasData: !!latestGameData,
-                dataPoints: latestGameData?.length,
-                samplePoints: latestGameData?.slice(0, 3)
-            });
-    
+
             if (latestGameData?.length > 0) {
                 datasets.push({
                     label: 'Latest Game',
@@ -261,7 +283,7 @@ export class DiscordBot {
                 });
             }
         }
-    
+
         // Add historical data
         for (const category of categories) {
             if (playerStats[category]?.[statType]) {
@@ -270,7 +292,7 @@ export class DiscordBot {
                     const processedData = this.processEventData(eventData, statType);
                     if (processedData?.length > 0) {
                         datasets.push({
-                            label: `${this.formatCategoryLabel(category)}`,
+                            label: this.formatCategoryLabel(category),
                             data: processedData,
                             borderColor: this.categoryStyles[category].borderColor,
                             borderWidth: 2,
@@ -284,16 +306,11 @@ export class DiscordBot {
                 }
             }
         }
-    
+
         if (datasets.length === 0) {
             throw new Error(`No data available for ${statType}`);
         }
-    
-        console.log('Final datasets:', datasets.map(d => ({
-            label: d.label,
-            dataPoints: d.data.length
-        })));
-    
+
         const chart = new Chart(ctx, {
             type: 'line',
             data: { datasets },
@@ -305,7 +322,8 @@ export class DiscordBot {
                         type: 'linear',
                         title: {
                             display: true,
-                            text: 'Time (minutes)'
+                            text: 'Time (minutes)',
+                            padding: { top: 10, bottom: 10 }
                         },
                         ticks: {
                             callback: value => Math.round(value)
@@ -315,7 +333,8 @@ export class DiscordBot {
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: this.getYAxisLabel(statType)
+                            text: this.getYAxisLabel(statType),
+                            padding: { top: 10, bottom: 10 }
                         }
                     }
                 },
@@ -337,6 +356,7 @@ export class DiscordBot {
                             `${summoner}'s ${this.formatStatLabel(statType)}`,
                             'Latest Game vs Historical Games'
                         ],
+                        padding: { top: 10, bottom: 20 },
                         font: { 
                             size: 16,
                             weight: 'bold'
@@ -345,51 +365,46 @@ export class DiscordBot {
                 }
             }
         });
-    
+
         const buffer = canvas.toBuffer('image/png');
         chart.destroy();
         return buffer;
     }
 
     processEventData(events, statType) {
-        // Helper function to convert timestamps to minutes properly
         const convertToMinutes = (timestamp) => {
-            // If timestamp is already in seconds (less than 100000), just divide by 60
-            // If timestamp is in milliseconds (greater than 100000), divide by 60000
             return timestamp > 100000 ? timestamp / 60000 : timestamp / 60;
         };
+
         if (!Array.isArray(events)) {
             console.error('Invalid events data:', events);
             return [];
         }
 
-        // Handle KDA and itemPurchases which have complex object structure
         if (statType === 'kda' || statType === 'itemPurchases') {
             return events
                 .filter(event => event && typeof event === 'object')
                 .map(event => ({
-                    x: convertToMinutes(event.timestamp), // Convert to minutes using helper function
+                    x: convertToMinutes(event.timestamp),
                     y: statType === 'kda' ? event.kdaValue : event.goldValue
                 }))
-                .sort((a, b) => a.x - b.x); // Ensure chronological order
+                .sort((a, b) => a.x - b.x);
         }
 
-        // Handle timeSpentDead specially
         if (statType === 'timeSpentDead') {
             return events
                 .filter(time => time !== null)
                 .map((time, index) => ({
                     x: index,
-                    y: time / 1000 // Convert ms to seconds
+                    y: time / 1000
                 }));
         }
 
-        // Handle simple event timestamps (kills, deaths, etc)
         return events
             .filter(timestamp => timestamp !== null)
             .map((timestamp, index) => ({
-                x: convertToMinutes(timestamp), // Convert to minutes using helper function
-                y: index + 1 // Cumulative count
+                x: convertToMinutes(timestamp),
+                y: index + 1
             }))
             .sort((a, b) => a.x - b.x);
     }
@@ -438,11 +453,16 @@ export class DiscordBot {
             console.log('Discord bot successfully logged in');
         } catch (error) {
             console.error('Failed to start Discord bot:', error);
-            throw error;
+            await this.handleDisconnect();
         }
     }
 
-    shutdown() {
-        return this.client.destroy();
+    async shutdown() {
+        try {
+            await this.client.destroy();
+            console.log('Discord bot successfully shut down');
+        } catch (error) {
+            console.error('Error during shutdown:', error);
+        }
     }
 }
