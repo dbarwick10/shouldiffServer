@@ -1,19 +1,16 @@
 // This module implements a Discord bot that generates statistical charts for League of Legends players
-// It uses the discord.js library for bot functionality and chart.js for visualization
 import { Client, IntentsBitField, SlashCommandBuilder } from 'discord.js';
 import { createCanvas } from 'canvas';
 import { Chart } from 'chart.js/auto';
 
 export class DiscordBot {
-    // Constructor initializes the Discord client with required permissions
     constructor(app) {
         this.app = app;
         
-        // Initialize Discord client with necessary intents
         this.client = new Client({
             intents: [
-                IntentsBitField.Flags.Guilds,        // Required for basic server interactions
-                IntentsBitField.Flags.GuildMessages  // Required for message handling
+                IntentsBitField.Flags.Guilds,
+                IntentsBitField.Flags.GuildMessages
             ]
         });
         
@@ -21,15 +18,12 @@ export class DiscordBot {
         console.log('Discord bot initialized');
     }
 
-    // Set up event handlers for Discord events
     setupEventHandlers() {
-        // Triggered once when the bot successfully connects to Discord
         this.client.once('ready', async () => {
             console.log(`Discord bot is ready! Logged in as ${this.client.user.tag}`);
             await this.registerCommands();
         });
     
-        // Handles all incoming slash commands
         this.client.on('interactionCreate', async interaction => {
             if (!interaction.isCommand()) return;
             console.log(`Received command: ${interaction.commandName}`);
@@ -37,7 +31,6 @@ export class DiscordBot {
         });
     }
 
-    // Register slash commands that users can use to interact with the bot
     async registerCommands() {
         const commands = [
             new SlashCommandBuilder()
@@ -77,12 +70,11 @@ export class DiscordBot {
                             { name: 'Barons', value: 'barons' },
                             { name: 'Elders', value: 'elders' },
                             { name: 'Inhibitors', value: 'inhibitors' },
-                            { name: 'Death Timers', value: 'deathTimers' }
+                            { name: 'Death Timers', value: 'timeSpentDead' }
                         ))
         ];
 
         try {
-            // Register the commands with Discord
             await this.client.application?.commands.set(commands);
             console.log('Discord commands registered successfully!');
         } catch (error) {
@@ -90,27 +82,24 @@ export class DiscordBot {
         }
     }
 
-    // Handle incoming slash commands
     async handleCommand(interaction) {
         if (interaction.commandName !== 'stats') return;
 
-        // Defer the reply to give us time to generate the chart
         await interaction.deferReply();
 
         try {
-            // Get command parameters from the interaction
             const summoner = interaction.options.getString('summoner');
             const tagline = interaction.options.getString('tagline');
             const gameMode = interaction.options.getString('gamemode');
             const statType = interaction.options.getString('stat');
 
-            // Fetch player statistics from our API
-            const statsData = await this.fetchStatsData(summoner, tagline, gameMode);
+            console.log('Fetching stats for:', { summoner, tagline, gameMode, statType });
             
-            // Generate a chart from the statistics
+            const statsData = await this.fetchStatsData(summoner, tagline, gameMode);
+            console.log('Received stats data:', statsData);
+            
             const chartImage = await this.generateChart(statsData, statType);
             
-            // Send the chart back to Discord
             await interaction.editReply({
                 files: [{
                     attachment: chartImage,
@@ -126,16 +115,11 @@ export class DiscordBot {
         }
     }
 
-    // Fetch player statistics from our API
     async fetchStatsData(summoner, tagline, gameMode) {
         try {
-            // The production API endpoint for fetching player statistics
             const apiUrl = 'https://shouldiffserver-test.onrender.com/api/stats';
+            console.log(`Fetching stats from ${apiUrl}`);
             
-            // Log the request for debugging purposes
-            console.log(`Fetching stats for ${summoner}#${tagline} in ${gameMode} mode`);
-            
-            // Make the POST request to the production stats endpoint
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
@@ -148,18 +132,13 @@ export class DiscordBot {
                 })
             });
 
-            // Handle various API response status codes
             if (!response.ok) {
                 const errorData = await response.json();
-                
-                // Handle specific API error cases
                 if (response.status === 404) {
                     throw new Error('Player not found. Please check the summoner name and tagline.');
                 } else if (response.status === 429) {
                     throw new Error('Rate limit exceeded. Please try again in a few minutes.');
                 }
-                
-                // Handle general API errors with more detailed messages
                 throw new Error(
                     errorData.error || 
                     errorData.details || 
@@ -169,43 +148,51 @@ export class DiscordBot {
 
             const data = await response.json();
             
-            // Validate the response data structure
             if (!data.averageEventTimes) {
                 throw new Error('Invalid data received from API. Required statistics are missing.');
             }
 
             return data;
-
         } catch (error) {
             console.error('Error fetching stats data:', error);
             throw new Error(`Failed to fetch player stats: ${error.message}`);
         }
     }
 
-    // Generate a chart visualization of the player statistics
     async generateChart(data, statType) {
-        // Create a canvas for the chart
         const canvas = createCanvas(800, 400);
         const ctx = canvas.getContext('2d');
 
-        // Process the data from the API response
-        const timeData = data.averageEventTimes?.[statType] || [];
-        
-        // Convert the time data into chart points
-        const chartData = timeData.map((time, index) => ({
-            x: time / 60, // Convert to minutes
-            y: this.getStatValue(data, statType, index)
-        }));
+        // Find the first available data category (wins/losses/etc)
+        const categories = ['wins', 'losses', 'surrenderWins', 'surrenderLosses'];
+        const category = categories.find(cat => 
+            data.averageEventTimes[cat]?.[statType]?.length > 0
+        );
 
-        // Create and configure the chart
+        if (!category) {
+            throw new Error('No data available for chart generation');
+        }
+
+        // Get the event data and process it
+        const events = data.averageEventTimes[category][statType];
+        const chartData = this.processEventData(events, statType);
+
+        console.log('Generating chart with data:', {
+            category,
+            statType,
+            chartData: chartData.slice(0, 3) // Log first 3 points for debugging
+        });
+
+        // Create the chart
         const chart = new Chart(ctx, {
             type: 'line',
             data: {
                 datasets: [{
-                    label: `${this.formatStatLabel(statType)} Over Time`,
+                    label: this.getChartLabel(statType),
                     data: chartData,
                     borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
+                    tension: 0.1,
+                    fill: false
                 }]
             },
             options: {
@@ -234,65 +221,95 @@ export class DiscordBot {
                     },
                     title: {
                         display: true,
-                        text: `${this.formatStatLabel(statType)} Over Time`
+                        text: `${this.formatStatLabel(statType)} Over Time (${category})`
                     }
                 }
             }
         });
 
-        // Convert the chart to a buffer and clean up
         const buffer = canvas.toBuffer('image/png');
         chart.destroy();
-
         return buffer;
     }
 
-    // Extract the appropriate value for a given stat type
-    getStatValue(data, statType, index) {
-        const playerStats = data.playerStats || {};
-        const teamStats = data.teamStats || {};
-        
-        switch (statType) {
-            case 'kda':
-                return (playerStats.kills + playerStats.assists) / Math.max(1, playerStats.deaths);
-            case 'kills':
-            case 'deaths':
-            case 'assists':
-                return playerStats[statType] || 0;
-            case 'dragons':
-            case 'barons':
-            case 'elders':
-                return teamStats[statType] || 0;
-            default:
-                return index + 1; // Fallback for other stats
+    processEventData(events, statType) {
+        if (!Array.isArray(events)) {
+            console.error('Invalid events data:', events);
+            return [];
         }
+
+        // Handle complex stats (KDA and itemPurchases)
+        if (statType === 'kda' || statType === 'itemPurchases') {
+            return events
+                .filter(event => event && typeof event === 'object')
+                .map(event => ({
+                    x: event.timestamp / 60000, // Convert ms to minutes
+                    y: statType === 'kda' ? event.kdaValue : event.goldValue
+                }));
+        }
+
+        // Handle timeSpentDead specially
+        if (statType === 'timeSpentDead') {
+            return events
+                .filter(time => time !== null)
+                .map((time, index) => ({
+                    x: index,
+                    y: time / 1000 // Convert ms to seconds
+                }));
+        }
+
+        // Handle simple event timestamps (kills, deaths, etc)
+        return events
+            .filter(timestamp => timestamp !== null)
+            .map((timestamp, index) => ({
+                x: timestamp / 60000, // Convert ms to minutes
+                y: index + 1 // Cumulative count
+            }))
+            .sort((a, b) => a.x - b.x); // Ensure chronological order
     }
 
-    // Format stat labels for display
-    formatStatLabel(statType) {
-        return statType.charAt(0).toUpperCase() + 
-               statType.slice(1).replace(/([A-Z])/g, ' $1').trim();
+    getChartLabel(statType) {
+        const labels = {
+            kills: 'Cumulative Kills',
+            deaths: 'Cumulative Deaths',
+            assists: 'Cumulative Assists',
+            kda: 'KDA Ratio',
+            itemPurchases: 'Total Gold',
+            turrets: 'Turrets Destroyed',
+            dragons: 'Dragons Secured',
+            barons: 'Barons Secured',
+            elders: 'Elder Dragons Secured',
+            inhibitors: 'Inhibitors Destroyed',
+            timeSpentDead: 'Death Duration'
+        };
+        return labels[statType] || statType;
     }
 
-    // Get appropriate Y-axis label for different stat types
     getYAxisLabel(statType) {
         const labels = {
             kills: 'Number of Kills',
             deaths: 'Number of Deaths',
             assists: 'Number of Assists',
             kda: 'KDA Ratio',
-            itemPurchases: 'Items Purchased',
+            itemPurchases: 'Total Gold Value',
             turrets: 'Turrets Destroyed',
             dragons: 'Dragons Secured',
             barons: 'Barons Secured',
             elders: 'Elder Dragons Secured',
             inhibitors: 'Inhibitors Destroyed',
-            deathTimers: 'Death Duration (minutes)'
+            timeSpentDead: 'Time (seconds)'
         };
-        return labels[statType] || 'Value';
+        return labels[statType] || 'Count';
     }
 
-    // Start the Discord bot
+    formatStatLabel(statType) {
+        return statType
+            .replace(/([A-Z])/g, ' $1') // Add spaces before capital letters
+            .split(/[^a-zA-Z0-9]+/) // Split on non-alphanumeric characters
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter
+            .join(' ');
+    }
+
     async start(token) {
         if (!token) {
             console.error('No Discord bot token provided!');
@@ -308,7 +325,6 @@ export class DiscordBot {
         }
     }
 
-    // Gracefully shut down the Discord bot
     shutdown() {
         return this.client.destroy();
     }
