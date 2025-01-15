@@ -287,11 +287,11 @@ export class DiscordBot {
                     label: `Last Game (${this.formatCategoryLabel(gameResult)})`,
                     data: latestGameData,
                     borderColor: 'rgb(149, 165, 166, .75)',
-                    borderWidth: 3,
+                    borderWidth: 2.5,
                     fill: false,
                     tension: 0.1,
-                    pointRadius: 2,
-                    pointHoverRadius: 3,
+                    pointRadius: 1,
+                    pointHoverRadius: 2,
                     // segment: {
                     //     borderDash: [50, 1]
                     // },
@@ -316,7 +316,7 @@ export class DiscordBot {
                             tension: 0.1,
                             pointRadius: 1,
                             pointHoverRadius: 2,
-                            order: 1
+                            order: 1000
                         });
                     }
                 }
