@@ -14,3 +14,8 @@ export const QUEUE_MAPPINGS = {
 
 export const LIVE_POLLING_RATE = 1000;
 export const LIVE_STATS_ENABLED = false;
+export const DISCORD_TESTING = false;
+
+// Array of allowed server names
+// const allowedServers = ["Should I FF", "Your Other Server", "Another Server Name"];
+export const allowedServers = ["test server1111"];

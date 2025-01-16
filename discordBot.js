@@ -2,6 +2,7 @@
 import { Client, IntentsBitField, SlashCommandBuilder } from 'discord.js';
 import { createCanvas } from 'canvas';
 import { Chart } from 'chart.js/auto';
+import { allowedServers, DISCORD_TESTING } from './config/constaints.js';
 
 export class DiscordBot {
     constructor(app) {
@@ -126,10 +127,14 @@ export class DiscordBot {
                         .addChoices(
                             { name: 'All Games', value: 'all' },
                             { name: 'Ranked Solo/Duo', value: 'ranked' },
-                            { name: 'Normal Draft', value: 'draft' },
+                            { name: 'Ranked Flex', value: 'flex' },
+                            { name: 'Normal Draft', value: 'normal' },
+                            { name: 'Normal Blind', value: 'blind' },
                             { name: 'ARAM', value: 'aram' },
-                            { name: 'Arena', value: 'arena' }
+                            { name: 'URF', value: 'urf' },
+                            { name: 'Ultimate Spellbook', value: 'ultbook' }
                         ))
+
                 .addStringOption(option =>
                     option.setName('stat')
                         .setDescription('Stat to display')
@@ -147,6 +152,19 @@ export class DiscordBot {
                             { name: 'Inhibitors', value: 'inhibitors' },
                             { name: 'Death Timers', value: 'timeSpentDead' }
                         ))
+                .addStringOption(option =>
+                    option.setName('perspective')
+                        .setDescription('Choose whose stats to view')
+                        .setRequired(false)
+                        .addChoices(
+                            { name: 'Player Stats', value: 'playerStats' },
+                            { name: 'Team Stats', value: 'teamStats' },
+                            { name: 'Enemy Team Stats', value: 'enemyStats' }
+                        ))
+                .addBooleanOption(option =>
+                    option.setName('showlastgame')
+                        .setDescription('Show last game data (if available)')
+                        .setRequired(false))
         ];
 
         try {
@@ -159,16 +177,14 @@ export class DiscordBot {
 
     async handleCommand(interaction) {
 
-        // Array of allowed server names
-    // const allowedServers = ["Should I FF", "Your Other Server", "Another Server Name"];
-    const allowedServers = ["test server1111"];
-
     if (!allowedServers.includes(interaction.guild.name)) {
         return await interaction.reply({
             content: 'This bot is only available in official partner servers.',
             ephemeral: true
         });
-    } else {console.log('Approved. Server name:', interaction.guild.name);}
+    } else if(allowedServers.includes(interaction.guild.name)) {
+        console.log('Approved. Server name:', interaction.guild.name);
+    }
 
         if (interaction.commandName !== 'stats') return;
 
@@ -179,11 +195,28 @@ export class DiscordBot {
             const tagline = interaction.options.getString('tagline');
             const gameMode = interaction.options.getString('gamemode');
             const statType = interaction.options.getString('stat');
+            const perspective = interaction.options.getString('perspective') || 'playerStats';
+            const showLastGame = interaction.options.getBoolean('showlastgame') ?? true;
 
-            console.log('Processing stats request for:', { summoner, tagline, gameMode, statType });
+            console.log('Processing stats request for:', { 
+                summoner, 
+                tagline, 
+                gameMode, 
+                statType,
+                perspective,
+                showLastGame 
+            });
             
             const statsData = await this.fetchStatsData(summoner, tagline, gameMode);
-            const chartImage = await this.generateChart(statsData, statType, summoner);
+            const chartImage = await this.generateChart(
+                statsData, 
+                statType, 
+                summoner,
+                tagline, 
+                gameMode, 
+                perspective,
+                showLastGame
+            );
             
             await interaction.editReply({
                 files: [{
@@ -202,10 +235,11 @@ export class DiscordBot {
 
     async fetchStatsData(summoner, tagline, gameMode) {
         try {
+            const testingAPI = 'http://127.0.0.1:3000/api/stats';
             const apiUrl = 'https://shouldiffserver-test.onrender.com/api/stats';
-            console.log(`Fetching stats from ${apiUrl}`);
+            console.log(`Fetching stats from ${DISCORD_TESTING ? testingAPI : apiUrl}`);
             
-            const response = await fetch(apiUrl, {
+            const response = await fetch(DISCORD_TESTING ? testingAPI : apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -243,72 +277,71 @@ export class DiscordBot {
         }
     }
 
-    async generateChart(data, statType, summoner) {
+    async generateChart(data, statType, summoner, tagline, gameMode, perspective = 'playerStats', showLastGame = true) {
         const canvas = createCanvas(800, 400);
         const ctx = canvas.getContext('2d');
-
-        const playerStats = data.averageEventTimes?.playerStats;
-        if (!playerStats) {
-            throw new Error('No player statistics available');
+    
+        const stats = data.averageEventTimes?.[perspective];
+        if (!stats) {
+            throw new Error(`No ${perspective.replace('Stats', '')} statistics available`);
         }
-
+    
         const datasets = [];
         const categories = ['wins', 'losses', 'surrenderWins', 'surrenderLosses'];
-
-        // Process latest game data first
-        const latestGame = data.averageEventTimes?.latestGame;
-        if (latestGame?.playerStats) {
-            let latestGameData;
-            if (statType === 'kda') {
-                const kdaHistory = latestGame.playerStats.basicStats?.kda?.history;
-                if (kdaHistory && Array.isArray(kdaHistory.count)) {
-                    latestGameData = kdaHistory.count.map((kdaValue, index) => ({
-                        x: kdaHistory.timestamps[index] / 60,
-                        y: kdaValue
-                    })).filter(point => point.x != null && point.y != null);
+    
+        // Process latest game data if showLastGame is true
+        if (showLastGame) {
+            const latestGame = data.averageEventTimes?.latestGame;
+            if (latestGame?.[perspective]) {
+                let latestGameData;
+                if (statType === 'kda') {
+                    const kdaHistory = latestGame[perspective].basicStats?.kda?.history;
+                    if (kdaHistory && Array.isArray(kdaHistory.count)) {
+                        latestGameData = kdaHistory.count.map((kdaValue, index) => ({
+                            x: kdaHistory.timestamps[index] / 60,
+                            y: kdaValue
+                        })).filter(point => point.x != null && point.y != null);
+                    }
+                } else if (statType === 'itemPurchases') {
+                    const goldHistory = latestGame[perspective].economy?.itemGold?.history;
+                    latestGameData = this.processEventData(goldHistory?.count || [], 'itemPurchases');
+                } else if (statType === 'timeSpentDead') {
+                    const deathData = latestGame[perspective].basicStats?.timeSpentDead?.totalDeathTime;
+                    latestGameData = this.processEventData(deathData || [], 'timeSpentDead');
+                } else {
+                    const timestamps = 
+                        latestGame[perspective].basicStats?.[statType]?.timestamps || 
+                        latestGame[perspective].objectives?.[statType]?.timestamps || 
+                        [];
+                    latestGameData = this.processEventData(timestamps, statType);
                 }
-            } else if (statType === 'itemPurchases') {
-                const goldHistory = latestGame.playerStats.economy?.itemGold?.history;
-                latestGameData = this.processEventData(goldHistory?.count || [], 'itemPurchases');
-            } else if (statType === 'timeSpentDead') {
-                const deathData = latestGame.playerStats.basicStats?.timeSpentDead?.totalDeathTime;
-                latestGameData = this.processEventData(deathData || [], 'timeSpentDead');
-            } else {
-                const timestamps = 
-                    latestGame.playerStats.basicStats?.[statType]?.timestamps || 
-                    latestGame.playerStats.objectives?.[statType]?.timestamps || 
-                    [];
-                latestGameData = this.processEventData(timestamps, statType);
-            }
-
-            if (latestGameData?.length > 0) {
-                const gameResult = latestGame.playerStats.outcome.result;
-                datasets.push({
-                    label: `Last Game (${this.formatCategoryLabel(gameResult)})`,
-                    data: latestGameData,
-                    borderColor: 'rgb(149, 165, 166, .75)',
-                    borderWidth: 2.5,
-                    fill: false,
-                    tension: 0.1,
-                    pointRadius: 1,
-                    pointHoverRadius: 2,
-                    // segment: {
-                    //     borderDash: [50, 1]
-                    // },
-                    order: 2
-                });
+    
+                if (latestGameData?.length > 0) {
+                    const gameResult = `${latestGame[perspective].outcome.result}` || '';
+                    datasets.push({
+                        label: !gameResult ? 'Last Game' : `Last Game (${this.formatStatLabel(gameResult)})`,
+                        data: latestGameData,
+                        borderColor: 'rgb(149, 165, 166, .75)',
+                        borderWidth: 2.5,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 1,
+                        pointHoverRadius: 2,
+                        order: 2
+                    });
+                }
             }
         }
-
+    
         // Add historical data
         for (const category of categories) {
-            if (playerStats[category]?.[statType]) {
-                const eventData = playerStats[category][statType];
+            if (stats[category]?.[statType]) {
+                const eventData = stats[category][statType];
                 if (eventData?.length > 0) {
                     const processedData = this.processEventData(eventData, statType);
                     if (processedData?.length > 0) {
                         datasets.push({
-                            label: this.formatCategoryLabel(category),
+                            label: this.formatStatLabel(category),
                             data: processedData,
                             borderColor: this.categoryStyles[category].borderColor,
                             borderWidth: 2,
@@ -322,15 +355,23 @@ export class DiscordBot {
                 }
             }
         }
-
+    
         if (datasets.length === 0) {
             throw new Error(`No data available for ${statType}`);
         }
+    
+        const perspectiveLabel = perspective === 'playerStats' ? '' : 
+            ` (${perspective === 'teamStats' ? 'Team' : 'Enemy Team'})`;
+    
+        ctx.fillStyle = 'rgba(28, 36, 52, 0.85)'; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const chart = new Chart(ctx, {
             type: 'line',
             data: { datasets },
             options: {
+                backgroundColor: 'rgba(28, 36, 52, 0.85)',
+                color: '#a0aec0',
                 responsive: false,
                 animation: false,
                 scales: {
@@ -338,11 +379,24 @@ export class DiscordBot {
                         type: 'linear',
                         title: {
                             display: true,
-                            text: 'Time (minutes)',
-                            padding: { top: 10, bottom: 10 }
+                            text: 'Game Time (minutes)',
+                            padding: { top: 10, bottom: 10 },
+                            color: '#d4af37',
+                            font: {
+                                family: "'Beaufort for LoL', Arial, sans-serif",
+                                weight: 600
+                            }
                         },
                         ticks: {
-                            callback: value => Math.round(value)
+                            callback: value => Math.round(value),
+                            color: '#a0aec0',
+                            font: {
+                                family: "'Beaufort for LoL', Arial, sans-serif"
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(114, 137, 218, 0.4)',
+                            // borderColor: 'rgba(114, 137, 218, 0.2)'
                         }
                     },
                     y: {
@@ -350,7 +404,22 @@ export class DiscordBot {
                         title: {
                             display: true,
                             text: this.getYAxisLabel(statType),
-                            padding: { top: 10, bottom: 10 }
+                            padding: { top: 10, bottom: 10 },
+                            color: '#d4af37',
+                            font: {
+                                family: "'Beaufort for LoL', Arial, sans-serif",
+                                weight: 600
+                            }
+                        },
+                        ticks: {
+                            color: '#a0aec0', 
+                            font: {
+                                family: "'Beaufort for LoL', Arial, sans-serif"
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(114, 137, 218, 0.4)',
+                            // borderColor: 'rgba(114, 137, 218, 0.2)'
                         }
                     }
                 },
@@ -361,27 +430,44 @@ export class DiscordBot {
                         labels: {
                             padding: 20,
                             usePointStyle: true,
+                            pointStyle: 'rect',
+                            boxWidth: 10,
+                            boxHeight: 10,
+                            boxFill: true,
+                            color: '#a0aec0',
                             font: {
-                                size: 12
+                                family: "'Beaufort for LoL', Arial, sans-serif",
+                                size: 12,
+                                weight: '500'
                             }
                         }
                     },
                     title: {
                         display: true,
                         text: [
-                            `${summoner}'s ${this.formatStatLabel(statType)}`,
-                            'Latest Game vs Historical Games'
+                            `${summoner}#${tagline}${perspectiveLabel}'s ${this.formatStatLabel(statType)}:`,
+                            `${gameMode.toUpperCase()} Games`
                         ],
                         padding: { top: 10, bottom: 20 },
+                        color: '#d4af37',
                         font: { 
+                            family: "'Beaufort for LoL', Arial, sans-serif",
                             size: 16,
                             weight: 'bold'
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            top: 20,
+                            right: 20,
+                            bottom: 20,
+                            left: 20
                         }
                     }
                 }
             }
         });
-
+    
         const buffer = canvas.toBuffer('image/png');
         chart.destroy();
         return buffer;
@@ -412,7 +498,7 @@ export class DiscordBot {
                 .filter(time => time !== null)
                 .map((time, index) => ({
                     x: index,
-                    y: time / 1000
+                    y: time / 60
                 }));
         }
 
@@ -425,12 +511,25 @@ export class DiscordBot {
             .sort((a, b) => a.x - b.x);
     }
 
-    formatCategoryLabel(category) {
-        return category
-            .replace(/([A-Z])/g, ' $1')
-            .split(/[^a-zA-Z0-9]+/)
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
+    formatStatLabel(statType) {
+        switch(statType) {
+            case 'kda':
+                return 'KDA';
+            case 'itemPurchases':
+                return 'Item Value';
+            case 'timeSpentDead':
+                return 'Total Time Spent Dead';
+            case 'hordeKills':
+                return 'Voidgrubs';
+            case 'eliteMonsterKills':
+                return 'Elite Monsters';
+            default:
+                return statType
+                    .replace(/([A-Z])/g, ' $1')
+                    .split(/[^a-zA-Z0-9#]+/)
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                    .join(' ');
+        }
     }
 
     getYAxisLabel(statType) {
@@ -445,18 +544,18 @@ export class DiscordBot {
             barons: 'Barons Secured',
             elders: 'Elder Dragons Secured',
             inhibitors: 'Inhibitors Destroyed',
-            timeSpentDead: 'Time (seconds)'
+            timeSpentDead: 'Time Spent Dead (Minutes)'
         };
         return labels[statType] || 'Count';
     }
 
-    formatStatLabel(statType) {
-        return statType
-            .replace(/([A-Z])/g, ' $1')
-            .split(/[^a-zA-Z0-9]+/)
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
-    }
+    // formatStatLabel(statType) {
+    //     return statType
+    //         .replace(/([A-Z])/g, ' $1')
+    //         .split(/[^a-zA-Z0-9#]+/)
+    //         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    //         .join(' ');
+    // }
 
     async start(token) {
         if (!token) {
