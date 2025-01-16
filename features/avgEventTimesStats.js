@@ -1,9 +1,9 @@
 export function calculateAverageEventTimes(individualGameStats) {
     // Debug log to see what we're starting with
-    console.log('Starting calculateAverageEventTimes with:', {
-        numberOfGames: individualGameStats?.length,
-        hasFirstGame: !!individualGameStats?.[0]
-    });
+    // console.log('Starting calculateAverageEventTimes with:', {
+    //     numberOfGames: individualGameStats?.length,
+    //     hasFirstGame: !!individualGameStats?.[0]
+    // });
 
     const aggregatedTimestamps = {
         playerStats: initializeStats(),
@@ -32,10 +32,10 @@ export function calculateAverageEventTimes(individualGameStats) {
 
     // Add latest game
     if (individualGameStats && individualGameStats.length > 0) {
-        console.log('Adding latest game to averageEventTimes');
+        // console.log('Adding latest game to averageEventTimes');
         averageEventTimes.latestGame = individualGameStats[0];
     } else {
-        console.log('No games available for latest game data');
+        // console.log('No games available for latest game data');
     }
 
     return averageEventTimes;

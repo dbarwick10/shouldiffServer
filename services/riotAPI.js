@@ -98,7 +98,7 @@ class RiotAPIService {
                     
                     if (!queue || matchData.info.queueId === queue) {
                         matchDetails.push(matchData);
-                        console.log(`Added Match Stats. Current count: ${matchDetails.length}/${MATCH_COUNT}`);
+                        // console.log(`Added Match Stats. Current count: ${matchDetails.length}/${MATCH_COUNT}`);
                     }
                 } else {
                     console.error(`Failed to fetch match ${matchId}`);
@@ -130,7 +130,7 @@ class RiotAPIService {
                 if (response.ok) {
                     const eventData = await response.json();
                     matchEvents.push(eventData);
-                    console.log(`Analyzing Match Events. Current count: ${matchEvents.length}/${MATCH_COUNT}`);
+                    // console.log(`Analyzing Match Events. Current count: ${matchEvents.length}/${MATCH_COUNT}`);
                 } else {
                     console.error(`Failed to fetch events for match ${matchId}`);
                 }
