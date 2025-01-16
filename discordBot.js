@@ -125,7 +125,7 @@ export class DiscordBot {
                         .setDescription('Game Mode to analyze')
                         .setRequired(true)
                         .addChoices(
-                            { name: 'All Games', value: 'all' },
+                            // { name: 'All Games', value: 'all' },
                             { name: 'Ranked Solo/Duo', value: 'ranked' },
                             { name: 'Ranked Flex', value: 'flex' },
                             { name: 'Normal Draft', value: 'normal' },
