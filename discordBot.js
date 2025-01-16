@@ -537,7 +537,7 @@ export class DiscordBot {
             kills: 'Number of Kills',
             deaths: 'Number of Deaths',
             assists: 'Number of Assists',
-            kda: 'KDA Ratio',
+            kda: 'KDA',
             itemPurchases: 'Total Gold Value',
             turrets: 'Turrets Destroyed',
             dragons: 'Dragons Secured',
