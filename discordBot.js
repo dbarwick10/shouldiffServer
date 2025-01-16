@@ -477,38 +477,40 @@ export class DiscordBot {
         const convertToMinutes = (timestamp) => {
             return timestamp > 100000 ? timestamp / 60000 : timestamp / 60;
         };
-
+    
         if (!Array.isArray(events)) {
             console.error('Invalid events data:', events);
             return [];
         }
-
+    
         if (statType === 'kda' || statType === 'itemPurchases') {
             return events
                 .filter(event => event && typeof event === 'object')
+                .sort((a, b) => a.timestamp - b.timestamp)  // Sort by raw timestamp first
                 .map(event => ({
                     x: convertToMinutes(event.timestamp),
                     y: statType === 'kda' ? event.kdaValue : event.goldValue
-                }))
-                .sort((a, b) => a.x - b.x);
+                }));
         }
-
+    
         if (statType === 'timeSpentDead') {
             return events
                 .filter(time => time !== null)
-                .map((time, index) => ({
-                    x: index,
+                .sort((a, b) => a - b)  // Sort times first
+                .map(time => ({
+                    x: convertToMinutes(time),  // Use actual time instead of index
                     y: time / 60
                 }));
         }
-
+    
+        // Default case (turrets)
         return events
             .filter(timestamp => timestamp !== null)
+            .sort((a, b) => a - b)  // Sort raw timestamps first
             .map((timestamp, index) => ({
                 x: convertToMinutes(timestamp),
                 y: index + 1
-            }))
-            .sort((a, b) => a.x - b.x);
+            }));
     }
 
     formatStatLabel(statType) {
