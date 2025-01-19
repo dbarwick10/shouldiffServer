@@ -13,6 +13,8 @@
     "package-all": "npm run package-mac && npm run package-win"
   },
   "dependencies": {
+    "@twurple/auth": "^7.1.0",
+    "@twurple/chat": "^7.1.0",
     "canvas": "^3.0.1",
     "chart.js": "^4.4.6",
     "cors": "^2.8.5",

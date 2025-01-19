@@ -14,8 +14,15 @@ export const QUEUE_MAPPINGS = {
 
 export const LIVE_POLLING_RATE = 1000;
 export const LIVE_STATS_ENABLED = false;
-export const DISCORD_TESTING = false;
 
 // Array of allowed server names
 // const allowedServers = ["Should I FF", "Your Other Server", "Another Server Name"];
-export const allowedServers = ["test server1111"];
+export const DISCORD_TESTING = true;
+// Discord 
+export const allowedServers = ["1329095426795638826"];
+
+// Twitch
+export const allowedChannels = ['aphroditeishot'];
+export const discordImageChannelIds = ['1329095426795638829'];
+
+export const TWITCH_TESTING = true;

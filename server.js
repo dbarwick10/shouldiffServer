@@ -6,6 +6,7 @@ import { dirname } from 'path';
 import 'dotenv/config';
 import apiRoutes from './api/routes.js';
 import { DiscordBot } from './discordBot.js';
+import { TwitchBot } from './twitchBot.js';
 import { initializeCache } from './features/getItemsAndPrices.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -62,7 +63,15 @@ async function startServer() {
             },
             credentials: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Access-Control-Allow-Origin', 'Accept']
+            allowedHeaders: [
+                'Content-Type', 
+                'Authorization', 
+                'Origin', 
+                'Access-Control-Allow-Origin', 
+                'Accept',
+                'Client-ID',
+                'client-id'
+            ]
         }));
 
         app.use(express.json());
@@ -117,11 +126,14 @@ async function startServer() {
         // Initialize Discord bot after server is running
         const discordBot = new DiscordBot(app);
         await discordBot.start(process.env.DISCORD_BOT_TOKEN);
+        const twitchBot = new TwitchBot({ app, discord: discordBot.client });
+        await twitchBot.start();
 
         console.log('Server initialization complete');
         console.log('Available endpoints:');
         console.log('  - GET /api/api/stats');
         console.log('  - GET /discordBot');
+        console.log('  - GET /twitchBot');
 
     } catch (error) {
         console.error('Failed to start server:', error);

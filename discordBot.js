@@ -2,7 +2,7 @@
 import { Client, IntentsBitField, SlashCommandBuilder } from 'discord.js';
 import { createCanvas } from 'canvas';
 import { Chart } from 'chart.js/auto';
-import { allowedServers, DISCORD_TESTING } from './config/constaints.js';
+import { allowedServers, DISCORD_TESTING } from './config/constraints.js';
 
 export class DiscordBot {
     constructor(app) {
@@ -176,21 +176,10 @@ export class DiscordBot {
     }
 
     async handleCommand(interaction) {
-
-    if (!allowedServers.includes(interaction.guild.name)) {
-        return await interaction.reply({
-            content: 'This bot is only available in official partner servers.',
-            ephemeral: true
-        });
-    } else if(allowedServers.includes(interaction.guild.name)) {
-        console.log('Approved. Server name:', interaction.guild.name);
-    }
-
         if (interaction.commandName !== 'stats') return;
 
-        await interaction.deferReply();
-
         try {
+            // Get command options before deferring
             const summoner = interaction.options.getString('summoner');
             const tagline = interaction.options.getString('tagline');
             const gameMode = interaction.options.getString('gamemode');
@@ -198,38 +187,78 @@ export class DiscordBot {
             const perspective = interaction.options.getString('perspective') || 'playerStats';
             const showLastGame = interaction.options.getBoolean('showlastgame') ?? true;
 
+            // Immediately defer the reply
+            try {
+                await interaction.deferReply();
+            } catch (error) {
+                if (error.code === 10062) {  // Unknown interaction
+                    console.error('Interaction expired before deferral');
+                    return;  // Exit gracefully if interaction has expired
+                }
+                throw error;  // Rethrow other errors
+            }
+
             console.log('Processing stats request for:', { 
-                summoner, 
-                tagline, 
-                gameMode, 
-                statType,
-                perspective,
-                showLastGame 
+                summoner, tagline, gameMode, statType, perspective, showLastGame 
             });
             
-            const statsData = await this.fetchStatsData(summoner, tagline, gameMode);
+            // Fetch data with timeout
+            const statsData = await Promise.race([
+                this.fetchStatsData(summoner, tagline, gameMode),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Data fetch timeout')), 10000)
+                )
+            ]);
+            
+            // Generate chart
             const chartImage = await this.generateChart(
                 statsData, 
                 statType, 
                 summoner,
-                tagline, 
-                gameMode, 
+                tagline,
+                gameMode,
                 perspective,
                 showLastGame
             );
             
-            await interaction.editReply({
-                files: [{
-                    attachment: chartImage,
-                    name: 'stats-chart.png'
-                }]
-            });
+            // Attempt to edit the reply
+            try {
+                await interaction.editReply({
+                    files: [{
+                        attachment: chartImage,
+                        name: 'stats-chart.png'
+                    }]
+                });
+            } catch (error) {
+                if (error.code === 10062) {
+                    console.error('Interaction expired during response');
+                    return;  // Exit gracefully
+                }
+                throw error;  // Rethrow other errors
+            }
         } catch (error) {
             console.error('Error processing command:', error);
-            await interaction.editReply({
-                content: `Error: ${error.message}`,
-                ephemeral: true
-            });
+            
+            // Attempt to send error message
+            try {
+                if (interaction.deferred) {
+                    await interaction.editReply({
+                        content: `Error: ${error.message}`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `Error: ${error.message}`,
+                        ephemeral: true
+                    });
+                }
+            } catch (replyError) {
+                if (replyError.code === 10062) {
+                    console.error('Interaction expired during error response');
+                    return;
+                }
+                console.error('Error sending error message:', replyError);
+            }
         }
     }
 
