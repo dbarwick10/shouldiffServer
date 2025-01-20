@@ -17,7 +17,7 @@ export const LIVE_STATS_ENABLED = false;
 
 // Array of allowed server names
 // const allowedServers = ["Should I FF", "Your Other Server", "Another Server Name"];
-export const DISCORD_TESTING = true;
+export const DISCORD_TESTING = false;
 // Discord 
 export const allowedServers = ["1329095426795638826"];
 
