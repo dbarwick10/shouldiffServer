@@ -97,12 +97,11 @@ export async function analyzePlayerStats(matchStats, puuid, gameResultMatches) {
             enemyStats: initializeStats(matchId)
         };
 
-        // Initialize structure for the latest game
         const latestGameStats = {
             playerStats: initializeStats(matchId),
             teamStats: initializeStats(matchId),
             enemyStats: initializeStats(matchId),
-            metadata: null  // We'll store game metadata here
+            metadata: null
         };
 
         const individualGameStats = [];
@@ -131,36 +130,51 @@ export async function analyzePlayerStats(matchStats, puuid, gameResultMatches) {
                 enemyStats: initializeStats(matchId)
             };
 
-            const isWin = gameResults.results.wins.some(game => game.matchId === matchId);
-            const isSurrender = gameResults.results.surrenderWins.some(game => game.matchId === matchId) ||
-                              gameResults.results.surrenderLosses.some(game => game.matchId === matchId);
-            const gameMode = gameResultMatch?.info?.gameMode;
-
-            gameStats.playerStats.outcome.result = isWin 
-                ? (isSurrender ? 'surrenderWin' : 'win')
-                : (isSurrender ? 'surrenderLoss' : 'loss');
-            gameStats.playerStats.outcome.surrender = isSurrender;
-
-            const participantInfo = getParticipantInfo(allEvents);
-            if (!participantInfo) {
-                console.warn(`Skipping match ${matchId} - cannot determine participant info`);
-                continue;
-            }
-
             const playerParticipantId = findPlayerParticipantId(allEvents, matchStatsMatch.info.participants, puuid);
             if (!playerParticipantId) {
                 console.warn(`Skipping match ${matchId} - cannot determine player's participantId`);
                 continue;
             }
 
+            const playerTeamId = playerParticipantId <= 5 ? 100 : 200;
+            const isWin = gameResults.results.wins.some(game => game.matchId === matchId);
+            const isSurrender = gameResults.results.surrenderWins.some(game => game.matchId === matchId) ||
+                              gameResults.results.surrenderLosses.some(game => game.matchId === matchId);
+            const gameMode = gameResultMatch?.info?.gameMode;
+
+            // Set outcomes based on perspective
+            gameStats.playerStats.outcome = {
+                result: isWin ? (isSurrender ? 'surrenderWin' : 'win') : (isSurrender ? 'surrenderLoss' : 'loss'),
+                surrender: isSurrender
+            };
+
+            gameStats.teamStats.outcome = {
+                result: isWin ? (isSurrender ? 'surrenderWin' : 'win') : (isSurrender ? 'surrenderLoss' : 'loss'),
+                surrender: isSurrender
+            };
+
+            // Enemy team outcome is opposite of player's team
+            gameStats.enemyStats.outcome = {
+                result: !isWin ? (isSurrender ? 'surrenderWin' : 'win') : (isSurrender ? 'surrenderLoss' : 'loss'),
+                surrender: isSurrender
+            };
+
             const teamParticipantIds = playerParticipantId <= 5 ? [1, 2, 3, 4, 5] : [6, 7, 8, 9, 10];
 
             await processMatchEvents(allEvents, playerParticipantId, teamParticipantIds, 
                                   aggregateStats, gameStats, matchId, matchStats, frames, gameResultMatches);
 
+            // Update aggregate stats outcomes
+            if (isWin) {
+                aggregateStats.playerStats.outcome.wins = (aggregateStats.playerStats.outcome.wins || 0) + 1;
+                aggregateStats.teamStats.outcome.wins = (aggregateStats.teamStats.outcome.wins || 0) + 1;
+            } else {
+                aggregateStats.enemyStats.outcome.wins = (aggregateStats.enemyStats.outcome.wins || 0) + 1;
+            }
+
             individualGameStats.push(gameStats);
 
-            // If this is the first game (index 0), store it in latestGameStats
+            // Store first game stats
             if (i === 0) {
                 latestGameStats.playerStats = JSON.parse(JSON.stringify(gameStats.playerStats));
                 latestGameStats.teamStats = JSON.parse(JSON.stringify(gameStats.teamStats));
@@ -171,7 +185,7 @@ export async function analyzePlayerStats(matchStats, puuid, gameResultMatches) {
                     timestamp: matchStatsMatch.info.gameCreation,
                     gameDuration: matchStatsMatch.info.gameDuration,
                     participantId: playerParticipantId,
-                    teamId: playerParticipantId <= 5 ? 100 : 200
+                    teamId: playerTeamId
                 };
             }
         }
@@ -179,7 +193,7 @@ export async function analyzePlayerStats(matchStats, puuid, gameResultMatches) {
         return { 
             aggregateStats,
             individualGameStats,
-            latestGameStats  // Add the latest game stats to the return object
+            latestGameStats
         };
 
     } catch (error) {
