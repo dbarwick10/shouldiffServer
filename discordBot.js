@@ -35,7 +35,7 @@ export class DiscordBot {
         // Add reconnection settings
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 10;
-        this.reconnectTimeout = 5000; // 5 seconds
+        this.reconnectTimeout = 5000;
 
         this.setupEventHandlers();
         console.log('Discord bot initialized');
@@ -177,27 +177,28 @@ export class DiscordBot {
 
     async handleCommand(interaction) {
         if (interaction.commandName !== 'stats') return;
-
+    
+        if (!allowedServers.includes(interaction.guild.id)) {
+            return await interaction.reply({
+                content: 'This bot is only available in official partner servers.',
+                ephemeral: true
+            });
+        }
+        
+        console.log('Approved. Server name:', interaction.guild.name);
+    
         try {
-            // Get command options before deferring
+            // Get command options
             const summoner = interaction.options.getString('summoner');
             const tagline = interaction.options.getString('tagline');
             const gameMode = interaction.options.getString('gamemode');
             const statType = interaction.options.getString('stat');
             const perspective = interaction.options.getString('perspective') || 'playerStats';
             const showLastGame = interaction.options.getBoolean('showlastgame') ?? true;
-
-            // Immediately defer the reply
-            try {
-                await interaction.deferReply();
-            } catch (error) {
-                if (error.code === 10062) {  // Unknown interaction
-                    console.error('Interaction expired before deferral');
-                    return;  // Exit gracefully if interaction has expired
-                }
-                throw error;  // Rethrow other errors
-            }
-
+    
+            // Defer the reply once
+            await interaction.deferReply();
+    
             console.log('Processing stats request for:', { 
                 summoner, tagline, gameMode, statType, perspective, showLastGame 
             });
@@ -221,43 +222,27 @@ export class DiscordBot {
                 showLastGame
             );
             
-            // Attempt to edit the reply
-            try {
-                await interaction.editReply({
-                    files: [{
-                        attachment: chartImage,
-                        name: 'stats-chart.png'
-                    }]
-                });
-            } catch (error) {
-                if (error.code === 10062) {
-                    console.error('Interaction expired during response');
-                    return;  // Exit gracefully
-                }
-                throw error;  // Rethrow other errors
-            }
+            await interaction.editReply({
+                files: [{
+                    attachment: chartImage,
+                    name: 'stats-chart.png'
+                }]
+            });
         } catch (error) {
             console.error('Error processing command:', error);
             
-            // Attempt to send error message
-            try {
-                if (interaction.deferred) {
-                    await interaction.editReply({
-                        content: `Error: ${error.message}`,
-                        ephemeral: true
-                    });
-                } else {
-                    await interaction.reply({
-                        content: `Error: ${error.message}`,
-                        ephemeral: true
-                    });
-                }
-            } catch (replyError) {
-                if (replyError.code === 10062) {
-                    console.error('Interaction expired during error response');
-                    return;
-                }
-                console.error('Error sending error message:', replyError);
+            const errorMessage = error.message || 'An unexpected error occurred';
+            
+            if (interaction.deferred) {
+                await interaction.editReply({
+                    content: `Error: ${errorMessage}`,
+                    ephemeral: true
+                });
+            } else {
+                await interaction.reply({
+                    content: `Error: ${errorMessage}`,
+                    ephemeral: true
+                });
             }
         }
     }
