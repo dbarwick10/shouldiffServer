@@ -131,9 +131,9 @@ async function startServer() {
 
         console.log('Server initialization complete');
         console.log('Available endpoints:');
-        console.log('  - GET /api/api/stats');
-        console.log('  - GET /discordBot');
-        console.log('  - GET /twitchBot');
+        console.log('  - GET /api/stats');
+        console.log('  & discordBot');
+        console.log('  & twitchBot');
 
     } catch (error) {
         console.error('Failed to start server:', error);
