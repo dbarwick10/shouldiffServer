@@ -73,7 +73,7 @@ class RiotAPIService {
             const initialCount = MATCH_COUNT;
 
             const matchIdsUrl = queue != null 
-                ? `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?queue=${encodeURIComponent(queue)}&start=0&count=${initialCount}&api_key=${this.apiKey}`
+                ? `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?queueid=${encodeURIComponent(queue)}&start=0&count=${initialCount}&api_key=${this.apiKey}`
                 : `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?start=0&count=${initialCount}&api_key=${this.apiKey}`;
             
             const response = await fetch(matchIdsUrl);
