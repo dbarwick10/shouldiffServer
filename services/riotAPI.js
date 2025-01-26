@@ -7,6 +7,7 @@ const QUEUE_MAPPINGS = {
     'blind': 430,      // Normal 5v5 Blind Pick
     'ranked': 420,     // Ranked Solo/Duo
     'flex': 440,       // Ranked Flex
+    'arurf': 900,       // ARURF
     'urf': 1020,       // Ultra Rapid Fire
     'ultbook': 1400,   // Ultimate Spellbook
     'all': null        // All queues
