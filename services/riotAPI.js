@@ -5,8 +5,8 @@ const QUEUE_MAPPINGS = {
     'aram': 450,       // ARAM
     'normal': 400,     // Normal 5v5 Draft Pick
     'blind': 430,      // Normal 5v5 Blind Pick
-    'ranked': 420,     // Ranked Solo/Duo
-    'flex': 440,       // Ranked Flex
+    'rankedSolo': 420,     // Ranked Solo/Duo
+    'rankedFlex': 440, // Ranked Flex 5v5
     'arurf': 900,       // ARURF
     'urf': 1020,       // Ultra Rapid Fire
     'ultbook': 1400,   // Ultimate Spellbook
