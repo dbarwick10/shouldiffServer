@@ -68,6 +68,7 @@ function initializeAggregatedStats() {
         hordeKills: [],
         dragons: [],
         elders: [],
+        atakhans: [],
         itemPurchases: [],
         timeSpentDead: []
     };
@@ -123,6 +124,7 @@ function aggregatePlayerStats(aggregatedStats, stats) {
     aggregateTimestamps(aggregatedStats.riftHeralds, stats.objectives?.riftHeralds?.timestamps || []);
     aggregateTimestamps(aggregatedStats.dragons, stats.objectives?.dragons?.timestamps || []);
     aggregateTimestamps(aggregatedStats.elders, stats.objectives?.elders?.timestamps || []);
+    aggregateTimestamps(aggregatedStats.atakhans, stats.objectives?.atakhans?.timestamps || []);
 
     aggregateGoldTimestamps(aggregatedStats.itemPurchases, stats.economy?.itemGold?.history?.count, stats.economy?.itemGold?.history?.timestamps);
 
@@ -215,6 +217,7 @@ function calculateAverageTimesForStats(aggregatedStats) {
         hordeKills: calculateAverageTimes(aggregatedStats.hordeKills),
         dragons: calculateAverageTimes(aggregatedStats.dragons),
         elders: calculateAverageTimes(aggregatedStats.elders),
+        atakhans: calculateAverageTimes(aggregatedStats.atakhans),
         timeSpentDead: calculateAverageTimes(aggregatedStats.timeSpentDead),
         itemPurchases: calculateAverageGoldTimes(aggregatedStats.itemPurchases)
     };

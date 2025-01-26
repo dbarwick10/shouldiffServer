@@ -48,7 +48,8 @@ function initializeStats(matchId) {
             riftHeralds: { count: 0, timestamps: [] },
             dragons: { count: 0, timestamps: [] },
             barons: { count: 0, timestamps: [] },
-            elders: { count: 0, timestamps: [] }
+            elders: { count: 0, timestamps: [] },
+            atakhans: { count: 0, timestamps: [] }
         },
         economy: {
             itemPurchases: {
@@ -650,6 +651,23 @@ function processMonsterKill(event, playerParticipantId, teamParticipantIds, stat
             stats.enemyStats.objectives.elders.timestamps.push(timestamp);
             gameStats.enemyStats.objectives.elders.count++;
             gameStats.enemyStats.objectives.elders.timestamps.push(timestamp);
+        }
+    } else if (event.monsterType === 'ATAKHAN') {
+        if (event.killerId === playerParticipantId) {
+            stats.playerStats.objectives.atakhans.count++;
+            stats.playerStats.objectives.atakhans.timestamps.push(timestamp);
+            gameStats.playerStats.objectives.atakhans.count++;
+            gameStats.playerStats.objectives.atakhans.timestamps.push(timestamp);
+        } else if (teamParticipantIds.includes(event.killerId)) {
+            stats.teamStats.objectives.atakhans.count++;
+            stats.teamStats.objectives.atakhans.timestamps.push(timestamp);
+            gameStats.teamStats.objectives.atakhans.count++;
+            gameStats.teamStats.objectives.atakhans.timestamps.push(timestamp);
+        } else {
+            stats.enemyStats.objectives.atakhans.count++;
+            stats.enemyStats.objectives.atakhans.timestamps.push(timestamp);
+            gameStats.enemyStats.objectives.atakhans.count++;
+            gameStats.enemyStats.objectives.atakhans.timestamps.push(timestamp);
         }
     }
 }
