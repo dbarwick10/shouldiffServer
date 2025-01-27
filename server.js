@@ -49,7 +49,8 @@ async function startServer() {
                     'https://dbarwick10.github.io/shouldiff/',
                     'https://shouldiffserver-new.onrender.com',
                     'http://shouldiff.ddns.net:3000',
-                    'https://shouldiff.ddns.net:3000'
+                    'https://shouldiff.ddns.net:3000',
+                    'https://q2wrpz-3000.csb.app/'
                 ];
                 
                 if (!origin) return callback(null, true);
