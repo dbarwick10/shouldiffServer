@@ -50,7 +50,8 @@ async function startServer() {
                     'https://shouldiffserver-new.onrender.com',
                     'http://shouldiff.ddns.net:3000',
                     'https://shouldiff.ddns.net:3000',
-                    'https://xd5sjj-3000.csb.app'
+                    'https://xd5sjj-3000.csb.app',
+                    'https://shouldiff-jqmo--3000--1b4252dd.local-credentialless.webcontainer.io'
                 ];
                 
                 if (!origin) return callback(null, true);
