@@ -52,7 +52,7 @@ async function startServer() {
                     'http://shouldiff.ddns.net:3000',
                     'https://shouldiff.ddns.net:3000',
                     'https://xd5sjj-3000.csb.app',
-                    'https://stackblitzwebcontainerapistart-nc3f--3000--1b4252dd.local-credentialless.webcontainer.io/'
+                    'https://stackblitzwebcontainerapistart-nc3f--3000--1b4252dd.local-credentialless.webcontainer.io'
                 ];
                 
                 if (!origin) return callback(null, true);
