@@ -37,7 +37,8 @@ async function startServer() {
             origin: function(origin, callback) {
                 const allowedOrigins = [
                     'http://127.0.0.1:5501',        
-                    'http://localhost:5501',         
+                    'http://localhost:5501',
+                    'http://localhost:3000',         
                     'http://127.0.0.1:10000',        
                     'http://localhost:10000',         
                     'https://shouldiff.netlify.app',
