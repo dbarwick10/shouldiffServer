@@ -10,3 +10,6 @@ node_modules/
 # dist
 dist/
 package-lock.js
+
+# Ignore all .tgz files
+*.tgz
