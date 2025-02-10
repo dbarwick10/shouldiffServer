@@ -1,4 +1,4 @@
-const MATCH_COUNT = 10;
+const MATCH_COUNT = 100;
 const DELAY_BETWEEN_REQUESTS = 0;
 
 const QUEUE_MAPPINGS = {
