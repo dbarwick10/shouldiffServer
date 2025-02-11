@@ -81,7 +81,7 @@ async function startServer() {
 
         app.use((req, res, next) => {
             res.on('finish', () => {
-                console.log(`Memory usage after ${req.method} ${req.url}:`, getMemoryStats());
+                // console.log(`Memory usage after ${req.method} ${req.url}:`, getMemoryStats());
             });
             next();
         });
@@ -96,25 +96,25 @@ async function startServer() {
             res.status(err.status || 500).json({ error: err.message });
         });
 
-        function formatMemoryUsage(bytes) {
-            return `${Math.round(bytes / 1024 / 1024 * 100) / 100} MB`;
-        }
+        // function formatMemoryUsage(bytes) {
+        //     return `${Math.round(bytes / 1024 / 1024 * 100) / 100} MB`;
+        // }
 
-        function getMemoryStats() {
-            const memoryData = process.memoryUsage();
-            return {
-                rss: formatMemoryUsage(memoryData.rss), 
-                heapTotal: formatMemoryUsage(memoryData.heapTotal),
-                heapUsed: formatMemoryUsage(memoryData.heapUsed),
-                external: formatMemoryUsage(memoryData.external)
-            };
-        }
+        // function getMemoryStats() {
+        //     const memoryData = process.memoryUsage();
+        //     return {
+        //         rss: formatMemoryUsage(memoryData.rss), 
+        //         heapTotal: formatMemoryUsage(memoryData.heapTotal),
+        //         heapUsed: formatMemoryUsage(memoryData.heapUsed),
+        //         external: formatMemoryUsage(memoryData.external)
+        //     };
+        // }
 
         // Set up intervals for memory logging and cache refresh
-        const MEMORY_LOG_INTERVAL = 600000;
-        setInterval(() => {
-            console.log('Periodic memory check:', getMemoryStats());
-        }, MEMORY_LOG_INTERVAL);
+        // const MEMORY_LOG_INTERVAL = 600000;
+        // setInterval(() => {
+        //     console.log('Periodic memory check:', getMemoryStats());
+        // }, MEMORY_LOG_INTERVAL);
 
         const CACHE_REFRESH_INTERVAL = 1000 * 60 * 60 * 12; // 12 hour
         setInterval(async () => {
