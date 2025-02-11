@@ -2,15 +2,15 @@ const MATCH_COUNT = 100;
 const DELAY_BETWEEN_REQUESTS = 0;
 
 const QUEUE_MAPPINGS = {
-    'aram': 450,
-    'normal': 400,
-    'blind': 430,
-    'rankedSolo': 420,
-    'rankedFlex': 440,
-    'arurf': 900,
-    'urf': 1020,
-    'ultbook': 1400,
-    'all': null
+    'aram': 450,       // ARAM
+    'normal': 400,     // Normal 5v5 Draft Pick
+    'blind': 430,      // Normal 5v5 Blind Pick
+    'rankedSolo': 420, // Ranked Solo/Duo
+    'rankedFlex': 440, // Ranked Flex 5v5
+    'arurf': 900,      // ARURF
+    'urf': 1020,       // Ultra Rapid Fire
+    'ultbook': 1400,   // Ultimate Spellbook
+    'all': null        // All queues
 };
 
 class RiotAPIService {
@@ -24,6 +24,7 @@ class RiotAPIService {
             'asia',
             'sea'
         ];
+        // Enhanced metrics tracking
         this.metrics = {
             totalPuuidSearches: 0,
             uniquePuuids: new Set(),
@@ -51,13 +52,9 @@ class RiotAPIService {
             lastRequestTime: null
         };
 
-        console.log(JSON.stringify({
-            level: 'info',
-            event: 'riot_service_init',
-            timestamp: new Date().toISOString(),
-            service: 'riot-api',
-            message: 'RiotAPIService Initialized'
-        }));
+        console.log('\n=== RiotAPIService Initialized ===');
+        console.log('Start Time:', new Date(this.metrics.startTime).toISOString());
+        console.log('============================\n');
     }
 
     getMetrics() {
@@ -68,54 +65,43 @@ class RiotAPIService {
             (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : 0;
 
         return {
-            searches: {
-                total: this.metrics.totalPuuidSearches,
-                unique: this.metrics.uniquePuuids.size,
-                byRegion: this.metrics.searchesByRegion,
-                errorRate: (this.metrics.errors.puuidLookup / this.metrics.totalPuuidSearches || 0).toFixed(4)
+            mL_searches: {
+                mL_total: this.metrics.totalPuuidSearches,
+                mL_unique: this.metrics.uniquePuuids.size,
+                mL_byRegion: this.metrics.searchesByRegion,
+                mL_errorRate: (this.metrics.errors.puuidLookup / this.metrics.totalPuuidSearches || 0).toFixed(4)
             },
-            matches: {
-                processed: this.metrics.totalMatchesProcessed,
-                byQueue: this.metrics.matchesByQueue,
-                totalRequests: this.metrics.totalMatchRequests,
-                errorRate: (this.metrics.errors.matchFetch / this.metrics.totalMatchRequests || 0).toFixed(4)
+            mL_matches: {
+                mL_processed: this.metrics.totalMatchesProcessed,
+                mL_byQueue: this.metrics.matchesByQueue,
+                mL_totalRequests: this.metrics.totalMatchRequests,
+                mL_errorRate: (this.metrics.errors.matchFetch / this.metrics.totalMatchRequests || 0).toFixed(4)
             },
-            performance: {
-                uptime: uptime,
-                avgLatencyMs: {
-                    puuid: avgLatency(this.metrics.apiLatency.puuid),
-                    matches: avgLatency(this.metrics.apiLatency.matches),
-                    timeline: avgLatency(this.metrics.apiLatency.timeline)
+            mL_performance: {
+                mL_uptime: uptime,
+                mL_avgLatencyMs: {
+                    mL_puuid: avgLatency(this.metrics.apiLatency.puuid),
+                    mL_matches: avgLatency(this.metrics.apiLatency.matches),
+                    mL_timeline: avgLatency(this.metrics.apiLatency.timeline)
                 },
-                requestsPerMinute: (this.metrics.totalMatchRequests / (uptime / 60000)).toFixed(2)
+                mL_requestsPerMinute: (this.metrics.totalMatchRequests / (uptime / 60000)).toFixed(2)
             },
-            rateLimit: {
-                hits: this.metrics.rateLimitHits
+            mL_rateLimit: {
+                mL_hits: this.metrics.rateLimitHits
             }
         };
     }
 
     logMetrics(context = '') {
         const metrics = this.getMetrics();
-        console.log(JSON.stringify({
-            level: 'info',
-            event: 'riot_metrics',
-            context,
-            timestamp: new Date().toISOString(),
-            service: 'riot-api',
-            metrics
-        }));
+        console.log(`\n=== Metrics ${context ? `(${context})` : ''} ===`);
+        console.log(JSON.stringify(metrics, null, 2));
+        console.log('============================\n');
     }
 
     async getPuuid(summonerName, tagline) {
         const tag = tagline.replace(/[^a-zA-Z0-9 ]/g, "");
-        console.log(JSON.stringify({
-            level: 'info',
-            event: 'riot_puuid_search_start',
-            timestamp: new Date().toISOString(),
-            service: 'riot-api',
-            data: { summonerName, tagline: tag }
-        }));
+        console.log(`\n>>> Searching for player: ${summonerName}#${tag}`);
         
         this.metrics.totalPuuidSearches++;
         this.metrics.lastRequestTime = Date.now();
@@ -126,6 +112,7 @@ class RiotAPIService {
                 this.metrics.searchesByRegion[region]++;
                 
                 const riotUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(summonerName)}/${encodeURIComponent(tag)}`;
+                
                 const response = await fetch(`${riotUrl}?api_key=${this.apiKey}`);
                 const responseText = await response.text();
                 
@@ -133,29 +120,13 @@ class RiotAPIService {
                 
                 if (response.status === 429) {
                     this.metrics.rateLimitHits++;
-                    console.log(JSON.stringify({
-                        level: 'warn',
-                        event: 'riot_rate_limit',
-                        timestamp: new Date().toISOString(),
-                        service: 'riot-api',
-                        endpoint: 'puuid',
-                        region
-                    }));
                 }
                 
                 if (response.ok) {
                     const data = JSON.parse(responseText);
+                    console.log(`Found player in ${region}`);
                     this.metrics.uniquePuuids.add(data.puuid);
                     this.logMetrics('After PUUID Search');
-                    
-                    console.log(JSON.stringify({
-                        level: 'info',
-                        event: 'riot_puuid_found',
-                        timestamp: new Date().toISOString(),
-                        service: 'riot-api',
-                        data: { region, summonerName, tagline: tag }
-                    }));
-                    
                     return {
                         ...data,
                         region
@@ -163,14 +134,7 @@ class RiotAPIService {
                 }
             } catch (error) {
                 this.metrics.errors.puuidLookup++;
-                console.log(JSON.stringify({
-                    level: 'error',
-                    event: 'riot_puuid_error',
-                    timestamp: new Date().toISOString(),
-                    service: 'riot-api',
-                    error: error.message,
-                    data: { region, summonerName, tagline: tag }
-                }));
+                console.error(`Error searching in ${region}:`, error);
                 continue;
             }
         }
@@ -181,13 +145,7 @@ class RiotAPIService {
 
     async getMatchStats(puuid, region, gameMode) {
         try {
-            console.log(JSON.stringify({
-                level: 'info',
-                event: 'riot_match_fetch_start',
-                timestamp: new Date().toISOString(),
-                service: 'riot-api',
-                data: { puuid, region, gameMode }
-            }));
+            console.log('\n>>> Fetching match IDs...');
             
             const queue = gameMode && this.queueMappings[gameMode.toLowerCase()]
                 ? this.queueMappings[gameMode.toLowerCase()]
@@ -204,20 +162,14 @@ class RiotAPIService {
             if (!response.ok) {
                 if (response.status === 429) {
                     this.metrics.rateLimitHits++;
-                    console.log(JSON.stringify({
-                        level: 'warn',
-                        event: 'riot_rate_limit',
-                        timestamp: new Date().toISOString(),
-                        service: 'riot-api',
-                        endpoint: 'matches',
-                        region
-                    }));
                 }
                 this.metrics.errors.matchFetch++;
                 throw new Error(`Failed to fetch match IDs: ${await response.text()}`);
             }
 
             const matchIds = await response.json();
+            console.log(`Received ${matchIds.length} matches from API`);
+                        
             this.matchIds.set(puuid, matchIds);
 
             const matchDetails = [];
@@ -258,14 +210,7 @@ class RiotAPIService {
             return matchDetails;
 
         } catch (error) {
-            console.log(JSON.stringify({
-                level: 'error',
-                event: 'riot_match_error',
-                timestamp: new Date().toISOString(),
-                service: 'riot-api',
-                error: error.message,
-                data: { puuid, region, gameMode }
-            }));
+            console.error('Error in getMatchStats:', error);
             throw error;
         }
     }
@@ -277,14 +222,7 @@ class RiotAPIService {
         }
 
         try {
-            console.log(JSON.stringify({
-                level: 'info',
-                event: 'riot_timeline_fetch_start',
-                timestamp: new Date().toISOString(),
-                service: 'riot-api',
-                data: { puuid, region }
-            }));
-
+            console.log('\n>>> Fetching match events...');
             const matchEvents = [];
             for (const matchId of matchIds.slice(0, MATCH_COUNT)) {
                 const startTime = Date.now();
@@ -312,14 +250,7 @@ class RiotAPIService {
 
         } catch (error) {
             this.matchIds.delete(puuid);
-            console.log(JSON.stringify({
-                level: 'error',
-                event: 'riot_timeline_error',
-                timestamp: new Date().toISOString(),
-                service: 'riot-api',
-                error: error.message,
-                data: { puuid, region }
-            }));
+            console.error('Error in getMatchEvents:', error);
             throw error;
         }
     }
