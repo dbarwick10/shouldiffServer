@@ -69,7 +69,7 @@ export class DiscordBot {
         });
 
         // Debug and warning logging
-        this.client.on('debug', (info) => console.log('Discord Debug:', info));
+        // this.client.on('debug', (info) => console.log('Discord Debug:', info));
         this.client.on('warn', (info) => console.warn('Discord Warning:', info));
 
         // Reconnection handlers
