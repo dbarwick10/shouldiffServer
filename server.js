@@ -52,7 +52,7 @@ async function startServer() {
                     'http://shouldiff.ddns.net:3000',
                     'https://shouldiff.ddns.net:3000',
                     'https://xd5sjj-3000.csb.app',
-                    'shouldiffserver-production.up.railway.app'
+                    'https://shouldiffserver-production.up.railway.app'
                 ];
                 
                 if (!origin) return callback(null, true);
