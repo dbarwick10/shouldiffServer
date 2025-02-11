@@ -65,29 +65,29 @@ class RiotAPIService {
             (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : 0;
 
         return {
-            mL_searches: {
-                mL_total: this.metrics.totalPuuidSearches,
-                mL_unique: this.metrics.uniquePuuids.size,
-                mL_byRegion: this.metrics.searchesByRegion,
-                mL_errorRate: (this.metrics.errors.puuidLookup / this.metrics.totalPuuidSearches || 0).toFixed(4)
+            searches: {
+                total: this.metrics.totalPuuidSearches,
+                unique: this.metrics.uniquePuuids.size,
+                byRegion: this.metrics.searchesByRegion,
+                errorRate: (this.metrics.errors.puuidLookup / this.metrics.totalPuuidSearches || 0).toFixed(4)
             },
-            mL_matches: {
-                mL_processed: this.metrics.totalMatchesProcessed,
-                mL_byQueue: this.metrics.matchesByQueue,
-                mL_totalRequests: this.metrics.totalMatchRequests,
-                mL_errorRate: (this.metrics.errors.matchFetch / this.metrics.totalMatchRequests || 0).toFixed(4)
+            matches: {
+                processed: this.metrics.totalMatchesProcessed,
+                byQueue: this.metrics.matchesByQueue,
+                totalRequests: this.metrics.totalMatchRequests,
+                errorRate: (this.metrics.errors.matchFetch / this.metrics.totalMatchRequests || 0).toFixed(4)
             },
-            mL_performance: {
-                mL_uptime: uptime,
-                mL_avgLatencyMs: {
-                    mL_puuid: avgLatency(this.metrics.apiLatency.puuid),
-                    mL_matches: avgLatency(this.metrics.apiLatency.matches),
-                    mL_timeline: avgLatency(this.metrics.apiLatency.timeline)
+            performance: {
+                uptime: uptime,
+                avgLatencyMs: {
+                    puuid: avgLatency(this.metrics.apiLatency.puuid),
+                    matches: avgLatency(this.metrics.apiLatency.matches),
+                    timeline: avgLatency(this.metrics.apiLatency.timeline)
                 },
-                mL_requestsPerMinute: (this.metrics.totalMatchRequests / (uptime / 60000)).toFixed(2)
+                requestsPerMinute: (this.metrics.totalMatchRequests / (uptime / 60000)).toFixed(2)
             },
-            mL_rateLimit: {
-                mL_hits: this.metrics.rateLimitHits
+            rateLimit: {
+                hits: this.metrics.rateLimitHits
             }
         };
     }
