@@ -156,7 +156,7 @@ export class TwitchBot {
     async fetchStatsData(summoner, tagline, gameMode) {
         try {
             const testingAPI = 'http://127.0.0.1:3000/api/stats';
-            const apiUrl = 'https://shouldiffserver-test.onrender.com/api/stats';
+            const apiUrl = 'https://shouldiffserver-production.up.railway.app/api/stats';
             console.log(`Fetching stats from ${TWITCH_TESTING ? testingAPI : apiUrl}`);
             
             const response = await fetch(TWITCH_TESTING ? testingAPI : apiUrl, {

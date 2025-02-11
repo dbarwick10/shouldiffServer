@@ -250,7 +250,7 @@ export class DiscordBot {
     async fetchStatsData(summoner, tagline, gameMode) {
         try {
             const testingAPI = 'http://127.0.0.1:3000/api/stats';
-            const apiUrl = 'https://shouldiffserver-test.onrender.com/api/stats';
+            const apiUrl = 'https://shouldiffserver-production.up.railway.app/api/stats';
             console.log(`Fetching stats from ${DISCORD_TESTING ? testingAPI : apiUrl}`);
             
             const response = await fetch(DISCORD_TESTING ? testingAPI : apiUrl, {
