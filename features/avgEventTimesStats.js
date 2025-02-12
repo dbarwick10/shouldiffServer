@@ -1,14 +1,18 @@
 export function calculateAverageEventTimes(individualGameStats) {
-    // console.log('Starting calculateAverageEventTimes with data:', individualGameStats);
-    
+    // Debug log to see what we're starting with
+    // console.log('Starting calculateAverageEventTimes with:', {
+    //     numberOfGames: individualGameStats?.length,
+    //     hasFirstGame: !!individualGameStats?.[0]
+    // });
+
     const aggregatedTimestamps = {
         playerStats: initializeStats(),
         teamStats: initializeStats(),
         enemyStats: initializeStats()
     };
 
+    // Process all games for averages (including latest for now)
     individualGameStats.forEach((match, index) => {
-        // Aggregate stats based on match outcome
         const { outcome } = match.playerStats;
         const category = getOutcomeCategory(outcome.result);
 
@@ -19,28 +23,21 @@ export function calculateAverageEventTimes(individualGameStats) {
         }
     });
 
-    // console.log('Aggregated Economy Data:', {
-    //     playerStats: {
-    //         wins: {
-    //             itemPurchases: aggregatedTimestamps.playerStats.wins.itemPurchases[0],
-    //             samplePoints: aggregatedTimestamps.playerStats.wins.itemPurchases[0]
-    //         },
-    //     }
-    // });
-
-    // Calculate averages for each category
+    // Calculate averages
     const averageEventTimes = {
         playerStats: calculateAverageForCategories(aggregatedTimestamps.playerStats),
         teamStats: calculateAverageForCategories(aggregatedTimestamps.teamStats),
         enemyStats: calculateAverageForCategories(aggregatedTimestamps.enemyStats)
     };
 
-    // console.log('Averaged Economy Data:', {
-    //     playerStats: {
-    //         wins: averageEventTimes.playerStats.wins.itemPurchases[0],
-    //     }
-    // });
-    // console.log('Final averageEventTimes:', averageEventTimes);
+    // Add latest game
+    if (individualGameStats && individualGameStats.length > 0) {
+        // console.log('Adding latest game to averageEventTimes');
+        averageEventTimes.latestGame = individualGameStats[0];
+    } else {
+        // console.log('No games available for latest game data');
+    }
+
     return averageEventTimes;
 }
 
@@ -71,6 +68,7 @@ function initializeAggregatedStats() {
         hordeKills: [],
         dragons: [],
         elders: [],
+        atakhans: [],
         itemPurchases: [],
         timeSpentDead: []
     };
@@ -126,6 +124,7 @@ function aggregatePlayerStats(aggregatedStats, stats) {
     aggregateTimestamps(aggregatedStats.riftHeralds, stats.objectives?.riftHeralds?.timestamps || []);
     aggregateTimestamps(aggregatedStats.dragons, stats.objectives?.dragons?.timestamps || []);
     aggregateTimestamps(aggregatedStats.elders, stats.objectives?.elders?.timestamps || []);
+    aggregateTimestamps(aggregatedStats.atakhans, stats.objectives?.atakhans?.timestamps || []);
 
     aggregateGoldTimestamps(aggregatedStats.itemPurchases, stats.economy?.itemGold?.history?.count, stats.economy?.itemGold?.history?.timestamps);
 
@@ -218,6 +217,7 @@ function calculateAverageTimesForStats(aggregatedStats) {
         hordeKills: calculateAverageTimes(aggregatedStats.hordeKills),
         dragons: calculateAverageTimes(aggregatedStats.dragons),
         elders: calculateAverageTimes(aggregatedStats.elders),
+        atakhans: calculateAverageTimes(aggregatedStats.atakhans),
         timeSpentDead: calculateAverageTimes(aggregatedStats.timeSpentDead),
         itemPurchases: calculateAverageGoldTimes(aggregatedStats.itemPurchases)
     };

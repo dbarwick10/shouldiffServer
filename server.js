@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import 'dotenv/config';
 import apiRoutes from './api/routes.js';
+import { DiscordBot } from './discordBot.js';
+import { TwitchBot } from './twitchBot.js';
 import { initializeCache } from './features/getItemsAndPrices.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,18 +15,30 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-
 async function startServer() {
     try {
+        // Create a promise for server startup that must resolve first
+        const serverStartPromise = new Promise((resolve) => {
+            const server = app.listen(PORT, () => {
+                console.log(`Server successfully started on port ${PORT}`);
+                resolve(server);
+            });
+        });
 
+        // Wait for server to start before proceeding with other initializations
+        await serverStartPromise;
+
+        // Now we can proceed with other initializations
         await initializeCache();
         console.log('Item cache initialized successfully');
 
+        // Set up your middleware
         app.use(cors({
             origin: function(origin, callback) {
                 const allowedOrigins = [
                     'http://127.0.0.1:5501',        
-                    'http://localhost:5501',         
+                    'http://localhost:5501',
+                    'http://localhost:3000',         
                     'http://127.0.0.1:10000',        
                     'http://localhost:10000',         
                     'https://shouldiff.netlify.app',
@@ -36,7 +50,9 @@ async function startServer() {
                     'https://dbarwick10.github.io/shouldiff/',
                     'https://shouldiffserver-new.onrender.com',
                     'http://shouldiff.ddns.net:3000',
-                    'https://shouldiff.ddns.net:3000'
+                    'https://shouldiff.ddns.net:3000',
+                    'https://xd5sjj-3000.csb.app',
+                    'https://shouldiffserver-production.up.railway.app'
                 ];
                 
                 if (!origin) return callback(null, true);
@@ -50,49 +66,55 @@ async function startServer() {
             },
             credentials: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Access-Control-Allow-Origin', 'Accept']
+            allowedHeaders: [
+                'Content-Type', 
+                'Authorization', 
+                'Origin', 
+                'Access-Control-Allow-Origin', 
+                'Accept',
+                'Client-ID',
+                'client-id'
+            ]
         }));
 
         app.use(express.json());
 
         app.use((req, res, next) => {
-
             res.on('finish', () => {
-                console.log(`Memory usage after ${req.method} ${req.url}:`, getMemoryStats());
+                // console.log(`Memory usage after ${req.method} ${req.url}:`, getMemoryStats());
             });
-
             next();
         });
 
         // Routes
         app.use('/api', apiRoutes);
-
-        // static files
         app.use(express.static(path.join(__dirname, 'public')));
 
+        // Error handling middleware
         app.use((err, req, res, next) => {
             console.error('Server error:', err);
             res.status(err.status || 500).json({ error: err.message });
         });
 
-        function formatMemoryUsage(bytes) {
-            return `${Math.round(bytes / 1024 / 1024 * 100) / 100} MB`;
-        }
+        // function formatMemoryUsage(bytes) {
+        //     return `${Math.round(bytes / 1024 / 1024 * 100) / 100} MB`;
+        // }
 
-        function getMemoryStats() {
-            const memoryData = process.memoryUsage();
-            return {
-                rss: formatMemoryUsage(memoryData.rss), 
-                heapTotal: formatMemoryUsage(memoryData.heapTotal),
-                heapUsed: formatMemoryUsage(memoryData.heapUsed),
-                external: formatMemoryUsage(memoryData.external)
-            };
-        }
+        // function getMemoryStats() {
+        //     const memoryData = process.memoryUsage();
+        //     return {
+        //         rss: formatMemoryUsage(memoryData.rss), 
+        //         heapTotal: formatMemoryUsage(memoryData.heapTotal),
+        //         heapUsed: formatMemoryUsage(memoryData.heapUsed),
+        //         external: formatMemoryUsage(memoryData.external)
+        //     };
+        // }
 
-        const MEMORY_LOG_INTERVAL = 600000;
-        setInterval(() => {
-            console.log('Periodic memory check:', getMemoryStats());
-        }, MEMORY_LOG_INTERVAL);
+        // Set up intervals for memory logging and cache refresh
+        // const MEMORY_LOG_INTERVAL = 600000;
+        // setInterval(() => {
+        //     console.log('Periodic memory check:', getMemoryStats());
+        // }, MEMORY_LOG_INTERVAL);
 
         const CACHE_REFRESH_INTERVAL = 1000 * 60 * 60 * 12; // 12 hour
         setInterval(async () => {
@@ -104,19 +126,33 @@ async function startServer() {
             }
         }, CACHE_REFRESH_INTERVAL);
 
-        app.listen(PORT, '0.0.0.0', () => {
-            console.log(`Server running on port ${PORT}`);
-            console.log('Available endpoints:');
-            console.log('  - GET /api/test');
-            console.log('  - GET /api/puuid');
-            console.log('  - GET /api/match-stats');
-            console.log('  - GET /api/match-events');
-        });
+        // Initialize Discord bot after server is running
+        const discordBot = new DiscordBot(app);
+        await discordBot.start(process.env.DISCORD_BOT_TOKEN);
+        const twitchBot = new TwitchBot({ app, discord: discordBot.client });
+        await twitchBot.start();
+
+        console.log('Server initialization complete');
+        console.log('Available endpoints:');
+        console.log('  - GET /api/stats');
+        console.log('  & discordBot');
+        console.log('  & twitchBot');
 
     } catch (error) {
         console.error('Failed to start server:', error);
         process.exit(1);
     }
 }
+
+// Add global error handlers
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (error) => {
+    console.error('Unhandled Rejection:', error);
+    process.exit(1);
+});
 
 startServer();
