@@ -207,7 +207,7 @@ export class DiscordBot {
             const statsData = await Promise.race([
                 this.fetchStatsData(summoner, tagline, gameMode),
                 new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Data fetch timeout')), 10000)
+                    setTimeout(() => reject(new Error('Data fetch timeout')), 60000)
                 )
             ]);
             
