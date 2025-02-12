@@ -126,12 +126,12 @@ export class DiscordBot {
                         .setRequired(true)
                         .addChoices(
                             // { name: 'All Games', value: 'all' },
-                            { name: 'Ranked Solo/Duo', value: 'ranked' },
-                            { name: 'Ranked Flex', value: 'flex' },
+                            { name: 'Ranked Solo/Duo', value: 'rankedSolo' },
+                            { name: 'Ranked Flex', value: 'rankedFlex' },
                             { name: 'Normal Draft', value: 'normal' },
                             { name: 'Normal Blind', value: 'blind' },
                             { name: 'ARAM', value: 'aram' },
-                            { name: 'URF', value: 'urf' },
+                            { name: 'ARURF', value: 'arurf' },
                             { name: 'Ultimate Spellbook', value: 'ultbook' }
                         ))
 
@@ -159,7 +159,7 @@ export class DiscordBot {
                         .addChoices(
                             { name: 'Player Stats', value: 'playerStats' },
                             { name: 'Team Stats', value: 'teamStats' },
-                            { name: 'Enemy Team Stats', value: 'enemyStats' }
+                            // { name: 'Enemy Team Stats', value: 'enemyStats' }
                         ))
                 .addBooleanOption(option =>
                     option.setName('showlastgame')
@@ -207,7 +207,7 @@ export class DiscordBot {
             const statsData = await Promise.race([
                 this.fetchStatsData(summoner, tagline, gameMode),
                 new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Data fetch timeout')), 60000)
+                    setTimeout(() => reject(new Error('Data fetch timeout')), 300000) // 5 minutes timeout
                 )
             ]);
             

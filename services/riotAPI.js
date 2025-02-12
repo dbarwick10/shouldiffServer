@@ -8,7 +8,7 @@ const QUEUE_MAPPINGS = {
     'rankedSolo': 420, // Ranked Solo/Duo
     'rankedFlex': 440, // Ranked Flex 5v5
     'arurf': 900,      // ARURF
-    'urf': 1020,       // Ultra Rapid Fire
+    'oneForAll': 1020, // One for All
     'ultbook': 1400,   // Ultimate Spellbook
     'all': null        // All queues
 };
