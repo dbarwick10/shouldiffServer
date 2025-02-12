@@ -125,12 +125,21 @@ class RiotAPIService {
                 if (response.ok) {
                     const data = JSON.parse(responseText);
                     console.log(`Found player in ${region}`);
-                    this.metrics.uniquePuuids.add(data.puuid);
-                    this.logMetrics('After PUUID Search');
-                    return {
-                        ...data,
-                        region
-                    };
+                    
+                    // Check if the player has any match history in this region
+                    const matchIdsUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(data.puuid)}/ids?start=0&count=1&api_key=${this.apiKey}`;
+                    const matchResponse = await fetch(matchIdsUrl);
+                    
+                    if (matchResponse.ok) {
+                        const matchIds = await matchResponse.json();
+                        if (matchIds.length > 0) {
+                            this.metrics.uniquePuuids.add(data.puuid);
+                            return {
+                                ...data,
+                                region
+                            };
+                        }
+                    }
                 }
             } catch (error) {
                 this.metrics.errors.puuidLookup++;
@@ -140,7 +149,7 @@ class RiotAPIService {
         }
         
         this.metrics.errors.puuidLookup++;
-        throw new Error(`Player "${summonerName}#${tag}" not found in any region (searched: ${this.regions.join(', ')})`);
+        throw new Error(`Player "${summonerName}#${tag}" not found in any region with match history (searched: ${this.regions.join(', ')})`);
     }
 
     async getMatchStats(puuid, region, gameMode) {
@@ -206,7 +215,7 @@ class RiotAPIService {
                 await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
             }
 
-            this.logMetrics('After Match Processing');
+            // this.logMetrics('After Match Processing');
             return matchDetails;
 
         } catch (error) {
