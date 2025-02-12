@@ -397,7 +397,7 @@ export class DiscordBot {
                             padding: { top: 10, bottom: 10 },
                             color: '#d4af37',
                             font: {
-                                family: "'Beaufort for LoL', Arial, sans-serif",
+                                family: "Arial, sans-serif",
                                 weight: 600
                             }
                         },
@@ -405,7 +405,7 @@ export class DiscordBot {
                             callback: value => Math.round(value),
                             color: '#a0aec0',
                             font: {
-                                family: "'Beaufort for LoL', Arial, sans-serif"
+                                family: "Arial, sans-serif"
                             }
                         },
                         grid: {
@@ -421,14 +421,14 @@ export class DiscordBot {
                             padding: { top: 10, bottom: 10 },
                             color: '#d4af37',
                             font: {
-                                family: "'Beaufort for LoL', Arial, sans-serif",
+                                family: "Arial, sans-serif",
                                 weight: 600
                             }
                         },
                         ticks: {
                             color: '#a0aec0', 
                             font: {
-                                family: "'Beaufort for LoL', Arial, sans-serif"
+                                family: "Arial, sans-serif"
                             }
                         },
                         grid: {
@@ -450,7 +450,7 @@ export class DiscordBot {
                             boxFill: true,
                             color: '#a0aec0',
                             font: {
-                                family: "'Beaufort for LoL', Arial, sans-serif",
+                                family: "Arial, sans-serif",
                                 size: 12,
                                 weight: '500'
                             }
@@ -465,7 +465,7 @@ export class DiscordBot {
                         padding: { top: 10, bottom: 20 },
                         color: '#d4af37',
                         font: { 
-                            family: "'Beaufort for LoL', Arial, sans-serif",
+                            family: "Arial, sans-serif",
                             size: 16,
                             weight: 'bold'
                         }
