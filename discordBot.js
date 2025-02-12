@@ -397,16 +397,12 @@ export class DiscordBot {
                             padding: { top: 10, bottom: 10 },
                             color: '#d4af37',
                             font: {
-                                family: "Arial, sans-serif",
                                 weight: 600
                             }
                         },
                         ticks: {
                             callback: value => Math.round(value),
-                            color: '#a0aec0',
-                            font: {
-                                family: "Arial, sans-serif"
-                            }
+                            color: '#a0aec0'
                         },
                         grid: {
                             color: 'rgba(114, 137, 218, 0.4)',
@@ -421,15 +417,11 @@ export class DiscordBot {
                             padding: { top: 10, bottom: 10 },
                             color: '#d4af37',
                             font: {
-                                family: "Arial, sans-serif",
                                 weight: 600
                             }
                         },
                         ticks: {
                             color: '#a0aec0', 
-                            font: {
-                                family: "Arial, sans-serif"
-                            }
                         },
                         grid: {
                             color: 'rgba(114, 137, 218, 0.4)',
@@ -450,7 +442,6 @@ export class DiscordBot {
                             boxFill: true,
                             color: '#a0aec0',
                             font: {
-                                family: "Arial, sans-serif",
                                 size: 12,
                                 weight: '500'
                             }
@@ -464,8 +455,7 @@ export class DiscordBot {
                         ],
                         padding: { top: 10, bottom: 20 },
                         color: '#d4af37',
-                        font: { 
-                            family: "Arial, sans-serif",
+                        font: {
                             size: 16,
                             weight: 'bold'
                         }
