@@ -22,5 +22,8 @@
     "win": {
       "icon": "shouldiff_app\\Icon\\leeg.ico"
     }
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }

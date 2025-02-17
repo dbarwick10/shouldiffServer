@@ -1,6 +1,6 @@
 // This module implements a Discord bot that generates statistical charts for League of Legends players
 import { Client, IntentsBitField, SlashCommandBuilder } from 'discord.js';
-import { createCanvas } from 'canvas';
+import { createCanvas, registerFont } from 'canvas';
 import { Chart } from 'chart.js/auto';
 import { allowedServers, DISCORD_TESTING } from './config/constraints.js';
 
@@ -8,6 +8,7 @@ export class DiscordBot {
     constructor(app) {
         this.app = app;
         
+        registerFont('./fonts/Roboto-Regular.ttf', { family: 'Roboto' });
         // Initialize Discord client with necessary permissions
         this.client = new Client({
             intents: [
@@ -397,11 +398,13 @@ export class DiscordBot {
                             padding: { top: 10, bottom: 10 },
                             color: '#d4af37',
                             font: {
+                                family: 'Roboto',
                                 weight: 600
                             }
                         },
                         ticks: {
                             callback: value => Math.round(value),
+                            family: 'Roboto',
                             color: '#a0aec0'
                         },
                         grid: {
@@ -417,10 +420,12 @@ export class DiscordBot {
                             padding: { top: 10, bottom: 10 },
                             color: '#d4af37',
                             font: {
+                                family: 'Roboto',
                                 weight: 600
                             }
                         },
                         ticks: {
+                            family: 'Roboto',
                             color: '#a0aec0', 
                         },
                         grid: {
@@ -442,6 +447,7 @@ export class DiscordBot {
                             boxFill: true,
                             color: '#a0aec0',
                             font: {
+                                family: 'Roboto',
                                 size: 12,
                                 weight: '500'
                             }
@@ -456,6 +462,7 @@ export class DiscordBot {
                         padding: { top: 10, bottom: 20 },
                         color: '#d4af37',
                         font: {
+                            family: 'Roboto',
                             size: 16,
                             weight: 'bold'
                         }
