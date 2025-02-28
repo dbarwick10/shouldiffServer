@@ -100,12 +100,15 @@ class RiotAPIService {
     }
 
     async getPuuid(summonerName, tagline) {
-        const tag = tagline.replace(/[^a-zA-Z0-9 ]/g, "");
+        const tag = tagline.replace(/^#/, "");
         console.log(`\n>>> Searching for player: ${summonerName}#${tag}`);
         
         this.metrics.totalPuuidSearches++;
         this.metrics.lastRequestTime = Date.now();
         
+        let playerData = null;
+        
+        // First, find the player's account in any region
         for (const region of this.regions) {
             try {
                 const startTime = Date.now();
@@ -123,27 +126,44 @@ class RiotAPIService {
                 }
                 
                 if (response.ok) {
-                    const data = JSON.parse(responseText);
-                    console.log(`Found player in ${region}`);
-                    
-                    // Check if the player has any match history in this region
-                    const matchIdsUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(data.puuid)}/ids?start=0&count=1&api_key=${this.apiKey}`;
-                    const matchResponse = await fetch(matchIdsUrl);
-                    
-                    if (matchResponse.ok) {
-                        const matchIds = await matchResponse.json();
-                        if (matchIds.length > 0) {
-                            this.metrics.uniquePuuids.add(data.puuid);
-                            return {
-                                ...data,
-                                region
-                            };
-                        }
-                    }
+                    playerData = JSON.parse(responseText);
+                    console.log(`Found player in ${region}:`, playerData, riotUrl);
+                    break; // Exit the loop once the player is found
                 }
             } catch (error) {
                 this.metrics.errors.puuidLookup++;
                 console.error(`Error searching in ${region}:`, error);
+                continue;
+            }
+        }
+        
+        if (!playerData) {
+            this.metrics.errors.puuidLookup++;
+            throw new Error(`Player "${summonerName}#${tag}" not found in any region (searched: ${this.regions.join(', ')})`);
+        }
+        
+        // Now, check all regions for match history
+        for (const region of this.regions) {
+            try {
+                const matchIdsUrl = `https://${encodeURIComponent(region)}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(playerData.puuid)}/ids?start=0&count=1&api_key=${this.apiKey}`;
+                const matchResponse = await fetch(matchIdsUrl);
+                
+                if (matchResponse.status === 429) {
+                    this.metrics.rateLimitHits++;
+                }
+                
+                if (matchResponse.ok) {
+                    const matchIds = await matchResponse.json();
+                    if (matchIds.length > 0) {
+                        this.metrics.uniquePuuids.add(playerData.puuid);
+                        return {
+                            ...playerData,
+                            region
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error(`Error checking match history in ${region}:`, error);
                 continue;
             }
         }
