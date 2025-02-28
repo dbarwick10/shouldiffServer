@@ -12,8 +12,24 @@ router.post('/stats', async (req, res) => {
     let analysis = null;
     
     try {
-        const { summonerName, tagLine, gameMode } = req.body;
-        console.log('Processing request for:', { summonerName, tagLine, gameMode });
+        let { summonerName, tagLine, gameMode } = req.body;
+        
+        // Check if tagLine appears to be URL-encoded
+        if (tagLine && tagLine.match(/%[0-9A-F]{2}/i)) {
+            try {
+                tagLine = decodeURIComponent(tagLine);
+                console.log('Decoded tagLine:', tagLine);
+            } catch (e) {
+                console.error('Error decoding tagLine:', e);
+            }
+        }
+        
+        console.log('Processing request for:', { 
+            summonerName, 
+            tagLine,
+            gameMode 
+        });
+
 
         // Step 1: Get PUUID and region
         const puuidData = await getRiotData.getPuuid(summonerName, tagLine);
