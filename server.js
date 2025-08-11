@@ -127,16 +127,16 @@ async function startServer() {
         }, CACHE_REFRESH_INTERVAL);
 
         // Initialize Discord bot after server is running
-        const discordBot = new DiscordBot(app);
-        await discordBot.start(process.env.DISCORD_BOT_TOKEN);
-        const twitchBot = new TwitchBot({ app, discord: discordBot.client });
-        await twitchBot.start();
+        // const discordBot = new DiscordBot(app);
+        // await discordBot.start(process.env.DISCORD_BOT_TOKEN);
+        // const twitchBot = new TwitchBot({ app, discord: discordBot.client });
+        // await twitchBot.start();
 
         console.log('Server initialization complete');
         console.log('Available endpoints:');
         console.log('  - GET /api/stats');
-        console.log('  & discordBot');
-        console.log('  & twitchBot');
+        // console.log('  & discordBot');
+        // console.log('  & twitchBot');
 
     } catch (error) {
         console.error('Failed to start server:', error);
