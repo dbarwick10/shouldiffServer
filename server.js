@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import cron from 'node-cron';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import 'dotenv/config';
@@ -31,6 +32,17 @@ async function startServer() {
         // Now we can proceed with other initializations
         await initializeCache();
         console.log('Item cache initialized successfully');
+
+        cron.schedule('0 4 * * 3', async () => {
+            try {
+                await initializeCache();
+                console.log('Item cache refreshed via cron (Wednesday 4 AM PT)');
+            } catch (error) {
+                console.error('Failed to refresh item cache via cron:', error);
+            }
+        }, {
+            timezone: "America/Los_Angeles"
+        });
 
         // Set up your middleware
         app.use(cors({
@@ -109,22 +121,6 @@ async function startServer() {
         //         external: formatMemoryUsage(memoryData.external)
         //     };
         // }
-
-        // Set up intervals for memory logging and cache refresh
-        // const MEMORY_LOG_INTERVAL = 600000;
-        // setInterval(() => {
-        //     console.log('Periodic memory check:', getMemoryStats());
-        // }, MEMORY_LOG_INTERVAL);
-
-        const CACHE_REFRESH_INTERVAL = 1000 * 60 * 60 * 12; // 12 hour
-        setInterval(async () => {
-            try {
-                await initializeCache();
-                console.log('Item cache refreshed successfully');
-            } catch (error) {
-                console.error('Failed to refresh item cache:', error);
-            }
-        }, CACHE_REFRESH_INTERVAL);
 
         // Initialize Discord bot after server is running
         // const discordBot = new DiscordBot(app);
