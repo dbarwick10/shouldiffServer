@@ -40,13 +40,23 @@ async function getVersions() {
 
 async function fetchItemData(version) {
     if (!cache.items.has(version)) {
-        // console.log(`Fetching item data for version ${version}`);
-        const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/item.json`);
-        const itemData = await response.json();
-        cache.items.set(version, itemData.data);
+        const currentVersions = await getVersions();
+
+        if (!currentVersions.includes(version)) {
+            // New unseen version; refresh versions and full item cache
+            console.log(`New version detected: ${version}. Refreshing cache.`);
+            cache.versions = []; // Clear to force refresh
+            await initializeCache();
+        } else {
+            // It's one of the known versions, fetch it directly
+            const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/item.json`);
+            const itemData = await response.json();
+            cache.items.set(version, itemData.data);
+        }
     }
     return cache.items.get(version);
 }
+
 
 async function getItemsAndPrices() {
     if (cache.items.size > 0 && !isStale()) {
