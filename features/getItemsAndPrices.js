@@ -40,7 +40,7 @@ async function getVersions() {
 
 async function fetchItemData(version) {
     if (!cache.items.has(version)) {
-        console.log(`Fetching item data for version ${version}`);
+        // console.log(`Fetching item data for version ${version}`);
         const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/item.json`);
         const itemData = await response.json();
         cache.items.set(version, itemData.data);
