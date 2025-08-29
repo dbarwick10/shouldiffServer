@@ -33,7 +33,7 @@ async function startServer() {
         await initializeCache();
         console.log('Item cache initialized successfully');
 
-        cron.schedule('0 4 * * 3', async () => {
+        cron.schedule('0 12 * * 3', async () => {
             try {
                 await initializeCache();
                 console.log('Item cache refreshed via cron (Wednesday 4 AM PT)');
