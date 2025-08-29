@@ -360,47 +360,49 @@ async function processChampionKill(event, playerParticipantId, teamParticipantId
 
     // Process time spent dead
     function buildLevelTimeline(matchInfo) {
-        const levelsByParticipant = new Map();
-        
-        for (let i = 1; i <= 10; i++) {
-            levelsByParticipant.set(i, [{
-                level: 1,
-                timestamp: 0
-            }]);
-        }
+    const levelsByParticipant = new Map();
     
-        if (matchInfo.info?.frames) {
-            for (const frame of matchInfo.info.frames) {
-                if (!frame.events) continue;
+    for (let i = 1; i <= 10; i++) {
+        levelsByParticipant.set(i, [{
+            level: 1,
+            timestamp: 0
+        }]);
+    }
+
+    if (matchInfo.frames) {
+        for (const frame of matchInfo.frames) {
+            if (!frame.events) continue;
+            
+            const levelUpEvents = frame.events.filter(e => e.type === 'LEVEL_UP')
+                .sort((a, b) => a.timestamp - b.timestamp);
+                            
+            for (const event of levelUpEvents) {
+                const participantId = event.participantId;
+                const timestamp = event.timestamp / 1000;
+                const newLevel = event.level;
                 
-                const levelUpEvents = frame.events.filter(e => e.type === 'LEVEL_UP')
-                    .sort((a, b) => a.timestamp - b.timestamp);
-                                
-                for (const event of levelUpEvents) {
-                    const participantId = event.participantId;
-                    const timestamp = event.timestamp / 1000;
-                    const newLevel = event.level;
-                    
-                    const levelHistory = levelsByParticipant.get(participantId);
-                    if (!levelHistory) continue;
-    
-                    const currentLevel = levelHistory[levelHistory.length - 1].level;
-    
-                    if (newLevel === currentLevel + 1) {
-                        levelHistory.push({
-                            level: newLevel,
-                            timestamp: timestamp
-                        });
-                    } else {
-                        console.warn(`Non-sequential level up detected for participant ${participantId}:`, 
-                            `Current level: ${currentLevel}, New level: ${newLevel}, Time: ${timestamp}s`);
-                    }
+                const levelHistory = levelsByParticipant.get(participantId);
+                if (!levelHistory) continue;
+
+                const currentLevel = levelHistory[levelHistory.length - 1].level;
+
+                if (newLevel === currentLevel + 1) {
+                    levelHistory.push({
+                        level: newLevel,
+                        timestamp: timestamp
+                    });
+                } else {
+                    console.warn(`Non-sequential level up detected for participant ${participantId}:`, 
+                        `Current level: ${currentLevel}, New level: ${newLevel}, Time: ${timestamp}s`);
                 }
             }
         }
-
-        return levelsByParticipant;
+    } else {
+        console.warn('No frames found in matchInfo:', matchInfo);
     }
+
+    return levelsByParticipant;
+}
     
     function getChampionLevel(levelTimeline, participantId, timestamp) {
         const levels = levelTimeline.get(participantId);
